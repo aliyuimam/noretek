@@ -1,0 +1,125 @@
+
+import connectDB from "@/lib/mongodb";
+import support_comment from "@/models/support_comment";
+import { NextResponse } from "next/server";
+
+// ✅ CREATE Comment
+export async function POST(req) {
+  try {
+    await connectDB();
+    const body = await req.json();
+    const { ticket_id, customer_id, comment } = body;
+
+    if (!ticket_id || !customer_id || !comment) {
+      return NextResponse.json(
+        { success: false, message: "All fields are required" },
+        { status: 400 }
+      );
+    }
+
+    const newComment = await support_comment.create({
+      ticket_id,
+      customer_id,
+      comment,
+    });
+
+    await newComment.populate("customer_id", "name email");
+    await newComment.populate("ticket_id", "title");
+
+    return NextResponse.json(
+      { success: true, message: "Comment added", comment: newComment },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Comment POST error:", error);
+    return NextResponse.json(
+      { success: false, message: "Error creating comment" },
+      { status: 500 }
+    );
+  }
+}
+
+// ✅ GET All Comments (or filter by ticket_id)
+export async function GET(req) {
+  try {
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const ticketId = searchParams.get("ticket_id");
+
+    const filter = ticketId ? { ticket_id: ticketId } : {};
+
+    const comments = await support_comment.find(filter)
+      .populate("customer_id", "name email")
+      .populate("ticket_id", "title")
+      .sort({ created_at: -1 });
+
+    return NextResponse.json({ success: true, comments });
+  } catch (error) {
+    console.error("Comment GET error:", error);
+    return NextResponse.json(
+      { success: false, message: "Error fetching comments" },
+      { status: 500 }
+    );
+  }
+}
+
+// ✅ UPDATE Comment (PUT)
+export async function PUT(req) {
+  try {
+    await connectDB();
+    const body = await req.json();
+    const { id, comment } = body;
+
+    const updated = await support_comment.findByIdAndUpdate(
+      id,
+      { comment },
+      { new: true }
+    )
+      .populate("customer_id", "name email")
+      .populate("ticket_id", "title");
+
+    if (!updated) {
+      return NextResponse.json(
+        { success: false, message: "Comment not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Comment updated",
+      comment: updated,
+    });
+  } catch (error) {
+    console.error("Comment PUT error:", error);
+    return NextResponse.json(
+      { success: false, message: "Error updating comment" },
+      { status: 500 }
+    );
+  }
+}
+
+// ✅ DELETE Comment
+export async function DELETE(req) {
+  try {
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    const deleted = await support_comment.findByIdAndDelete(id);
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, message: "Comment not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true, message: "Comment deleted" });
+  } catch (error) {
+    console.error("Comment DELETE error:", error);
+    return NextResponse.json(
+      { success: false, message: "Error deleting comment" },
+      { status: 500 }
+    );
+  }
+}

@@ -1,0 +1,147 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "bootstrap-icons";
+
+:root{
+  --testColor:#0b0c27;
+  --hoverColor: #75757a;
+  --softColor:#f1fbff;
+  --ppColor:#023e8a;
+  --praColor:#023e8a;
+}
+*{
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+body {
+  background-color: var(--softColor);
+}
+
+/*--------------------------------------------------------------
+# MainPage Section
+--------------------------------------------------------------*/
+.mainPage {
+  width: 100%;
+  height: 100vh;
+  background: 
+    url("/assets/slider.png") top center no-repeat;
+  background-size: cover;
+}
+
+.mainPage .uper h1 {
+  margin: 0;
+  font-size: 48px;
+  font-weight: 700px;
+  color: var(--testColor);
+}
+
+.mainPage .uper h2 {
+  color: var(--testColor);
+  margin: 15px 0 0 0;
+  font-size: 26px;
+}
+.mainPage .uper .img-head {
+  color: var(--testColor);
+  font-size: 26px;
+}
+
+.mainPage .uper .btn-get-started {
+  margin-top: 30px;
+  line-height: 0;
+  padding: 15px 40px;
+  border-radius: 4px;
+  transition: 0.5s;
+  color: var(--lightColor);
+  background: linear-gradient(var(--testColor), var(--softColor));
+  box-shadow: 0px 5px 30px rgba(65, 84, 241, 0.4);
+}
+
+.mainPage .uper .btn-get-started span {
+  font-family: "Nunito", sans-serif;
+  font-weight: 600px;
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.mainPage .uper .btn-get-started i {
+  margin-left: 5px;
+  font-size: 18px;
+  transition: 0.3s;
+}
+
+.mainPage .uper .btn-get-started:hover i {
+  transform: translateX(5px);
+}
+
+.mainPage .uper img {
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  border-bottom-left-radius: 50px;
+  border-bottom-right-radius: 50px;
+}
+.mainPage .uper .hero-img {
+  text-align: right;
+}
+
+@media (min-width: 1024px) {
+  .mainPage {
+    background-attachment: fixed;
+  }
+  .mainPage .uper .hero-img img {
+    height: 85%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainPage {
+    height: auto;
+    text-align: center;
+    padding: 10px 0 60px 0;
+  }
+  .mainPage .uper img {
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+  }
+  .mainPage .uper .hero-img {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .mainPage .uper .hero-img img {
+    width: 100%;
+  }
+
+  .mainPage .uper h1 {
+    margin-top: 20px;
+    font-size: 22px;
+  }
+
+  .mainPage .uper h2 {
+    font-size: 18px;
+  }
+}
+
+
+.sidebar a.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: 0.3s;
+}
+
+@media (max-width: 991px) {
+  .sidebar {
+    position: absolute;
+    z-index: 1000;
+    height: 100vh;
+    top: 56px; /* height of navbar */
+    left: 0;
+    background-color: #0d6efd;
+  }
+}
+.titleColor{
+  color:var(--praColor);
+}
+.bColor{
+  background-color: var(--ppColor);
+  color: white;
+}

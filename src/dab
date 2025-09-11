@@ -1,0 +1,113 @@
+CREATE DATABASE IF NOT EXISTS Noretek_Energy_db;
+
+USE Noretek_Energy_db;
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    phone VARCHAR(20),
+    address TEXT,
+    password VARCHAR(255), -- hashed password
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+if (role === "admin") {
+      const adminCount = await User.countDocuments({ role: "admin" });
+      if (adminCount >= 2) {
+        return NextResponse.json(
+          { message: "Admin limit reached" },
+          { status: 403 }
+        );
+      }
+    }
+
+
+    {/* Quick Links 
+          <div className="col-12 col-md-6 col-lg-3">
+            <h5 className="fw-bold text-dark mb-3">Quick Links</h5>
+            <ul className="list-unstyled text-muted">
+              <li>
+                <Link href="/" className="text-decoration-none text-muted">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className="text-decoration-none text-muted">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/services" className="text-decoration-none text-muted">
+                  Services
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-decoration-none text-muted">
+                  Contact Us
+                </Link>
+              </li>
+            </ul>
+          </div>
+*/}
+          {/* Customer Support 
+          <div className="col-12 col-md-6 col-lg-3">
+            <h5 className="fw-bold text-dark mb-3">Customer Support</h5>
+            <ul className="list-unstyled text-muted">
+              <li>
+                <Link
+                  href="/customer-support-landing"
+                  className="text-decoration-none text-muted"
+                >
+                  Support & Ticket
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-decoration-none text-muted">
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-decoration-none text-muted">
+                  Contact Information
+                </Link>
+              </li>
+              <li>
+                <Link href="/services" className="text-decoration-none text-muted">
+                  Billing & Payment
+                </Link>
+              </li>
+            </ul>
+          </div>
+*/}
+          {/* Services 
+          <div className="col-12 col-md-6 col-lg-3">
+            <h5 className="fw-bold text-dark mb-3">Services</h5>
+            <ul className="list-unstyled text-muted">
+              <li>
+                <Link href="/services" className="text-decoration-none text-muted">
+                  Gas Monitoring
+                </Link>
+              </li>
+              <li>
+                <Link href="/services" className="text-decoration-none text-muted">
+                  Gas Purchasing
+                </Link>
+              </li>
+              <li>
+                <Link href="/services" className="text-decoration-none text-muted">
+                  Online Monitoring
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/customer-support-landing"
+                  className="text-decoration-none text-muted"
+                >
+                  Customer Support
+                </Link>
+              </li>
+            </ul>
+          </div>
+          */}
