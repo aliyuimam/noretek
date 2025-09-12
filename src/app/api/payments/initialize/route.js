@@ -1,19 +1,14 @@
 // src/app/api/payments/initialize/route.js
-import connectDB from "@/lib/mongodb";
-import Payment from "@/lib/Payment";
-import { initializeTransaction } from "@/lib/paystack";
 import { NextResponse } from "next/server";
-
+import { initializeTransaction } from "@/lib/paystack";
+import { connectDB } from "@/lib/mongodb";
 
 export async function POST(request) {
   try {
-    // ✅ Connect to MongoDB using the correct function
     await connectDB();
-    console.log("✅ MongoDB connected successfully");
 
     const { email, amount, metadata } = await request.json();
 
-    // ✅ Input validation
     if (!email || !amount) {
       return NextResponse.json(
         { status: false, message: "Email and amount are required" },
@@ -28,41 +23,28 @@ export async function POST(request) {
       );
     }
 
-    // ✅ Prepare Paystack payload
     const payload = {
       email,
-      amount: amount * 100, // Paystack expects amount in kobo
+      amount: amount * 100,
       metadata: metadata || {},
       callback_url: `${
         process.env.NEXTAUTH_URL || "http://localhost:3000"
       }/customer_payment_dashboard`,
     };
 
-    console.log("🚀 Initializing payment with callback:", payload.callback_url);
-    console.log("🚀 Initializing transaction with data:", {
-      email: payload.email,
-      amount: payload.amount,
-      metadata: payload.metadata,
-      callback_url: payload.callback_url
-    });
-
-    // ✅ Call Paystack
     const response = await initializeTransaction(payload);
 
     if (response?.status) {
       const reference = response.data.reference;
-      console.log("✅ Payment initialized with reference:", reference);
-      console.log("📦 Paystack initialization response:", response);
 
       try {
-        // ✅ Check if already exists (avoid duplicates if Paystack retries)
         const existing = await Payment.findOne({ reference });
 
         if (!existing) {
-          // ✅ Generate a unique transaction_id to avoid null duplicate key errors
-          const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
-          // ✅ Create payment record with all required fields
+          const transactionId = `txn_${Date.now()}_${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+
           const paymentData = {
             reference,
             user_id: metadata?.user_id || null,
@@ -72,38 +54,32 @@ export async function POST(request) {
             amount: amount,
             currency: "NGN",
             channel: "paystack",
-            transaction_id: transactionId, // ✅ Prevent null duplicate key error
+            transaction_id: transactionId,
             payment_method: "card",
             metadata: {
               ...metadata,
               authorization_url: response.data.authorization_url,
               callback_url: payload.callback_url,
-              purchase_type: 'electricity_token' // ✅ Ensure this is set
+              purchase_type: "electricity_token",
             },
             status: "pending",
-            // ✅ Add meter information if available
             meter_id: metadata?.meterNumber || null,
             meter_number: metadata?.meterNumber || null,
-            initiated_at: new Date()
+            initiated_at: new Date(),
           };
 
           await Payment.create(paymentData);
-          console.log("💾 Payment record created in MongoDB:", reference);
-        } else {
-          console.log("♻️ Payment already exists in DB:", reference);
         }
       } catch (dbError) {
-        console.error("❌ Database error while saving payment:", dbError);
-        // ✅ Don't fail the entire request if DB save fails
-        // Paystack transaction is already initialized, so we should return success
-        console.log("⚠️ Continuing with Paystack response despite DB error");
+        console.error("Database error while saving payment:", dbError);
       }
     } else {
-      console.error("❌ Paystack initialization failed:", response);
       return NextResponse.json(
         {
           status: false,
-          message: response.message || "Failed to initialize transaction with Paystack",
+          message:
+            response.message ||
+            "Failed to initialize transaction with Paystack",
         },
         { status: 500 }
       );
@@ -111,7 +87,6 @@ export async function POST(request) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("💥 Payment initialization error:", error);
     return NextResponse.json(
       {
         status: false,
@@ -122,7 +97,6 @@ export async function POST(request) {
   }
 }
 
-// ✅ Add other HTTP methods to prevent errors
 export async function GET() {
   return NextResponse.json(
     { status: false, message: "Method not allowed" },

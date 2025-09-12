@@ -1,3 +1,4 @@
+// src/models/PropertyUnit.jsx
 import mongoose from "mongoose";
 
 const PropertyUnitSchema = new mongoose.Schema(
@@ -16,5 +17,6 @@ const PropertyUnitSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// ✅ Export model (no return statements here)
 export default mongoose.models.PropertyUnit ||
   mongoose.model("PropertyUnit", PropertyUnitSchema);

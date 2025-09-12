@@ -12,23 +12,9 @@ export default function TicketForm({ onSave, editingTicket, setEditingTicket }) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const priorityOptions = ["Low", "Medium", "High", "Critical"];
-  const categoryOptions = [
-    "General Inquiry",
-    "Biling Issues",
-    "Technical Problems",
-    "Others",
-  ];
-
   useEffect(() => {
     if (editingTicket) {
-      setForm({
-        title: editingTicket.title || "",
-        description: editingTicket.description || "",
-        priority: editingTicket.priority || "Low",
-        category: editingTicket.category || "General Inquiry",
-        _id: editingTicket._id, // keep _id for updates only
-      });
+      setForm({ ...editingTicket });
     } else {
       setForm({
         title: "",
@@ -45,12 +31,11 @@ export default function TicketForm({ onSave, editingTicket, setEditingTicket }) 
     setError("");
 
     try {
-      let ticketData = { ...form };
+      const userEmail = localStorage.getItem("userEmail") || "anonymous";
+      const meterId = localStorage.getItem("meterNumber") || "Not assigned";
 
-      if (!editingTicket) {
-        // 🚀 ensure _id is not sent when creating
-        delete ticketData._id;
-      }
+      let ticketData = { ...form, created_by: userEmail, meter_id: meterId };
+      if (!editingTicket) delete ticketData._id;
 
       const response = await fetch("/api/tickets", {
         method: editingTicket ? "PUT" : "POST",
@@ -59,9 +44,8 @@ export default function TicketForm({ onSave, editingTicket, setEditingTicket }) 
       });
 
       const data = await response.json();
-
       if (response.ok) {
-        onSave(data.ticket || data);
+        onSave?.(data.ticket || data);
         if (!editingTicket) {
           setForm({
             title: "",
@@ -84,71 +68,44 @@ export default function TicketForm({ onSave, editingTicket, setEditingTicket }) 
   return (
     <form onSubmit={handleSubmit} className="mb-4">
       {error && <div className="alert alert-danger">{error}</div>}
-
       <div className="row g-2">
         <div className="col-md-4">
-          <input
-            className="form-control"
-            placeholder="Title *"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-            disabled={isSubmitting}
+          <input className="form-control" placeholder="Title *"
+            value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+            required disabled={isSubmitting}
           />
         </div>
         <div className="col-md-3">
-          <input
-            className="form-control"
-            placeholder="Description *"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            required
-            disabled={isSubmitting}
+          <input className="form-control" placeholder="Description *"
+            value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+            required disabled={isSubmitting}
           />
         </div>
         <div className="col-md-2">
-          <select
-            className="form-select"
-            value={form.priority}
+          <select className="form-select" value={form.priority}
             onChange={(e) => setForm({ ...form, priority: e.target.value })}
-            disabled={isSubmitting}
-          >
-            {priorityOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
+            disabled={isSubmitting}>
+            {["Low", "Medium", "High", "Critical"].map((option) => (
+              <option key={option}>{option}</option>
             ))}
           </select>
         </div>
         <div className="col-md-2">
-          <select
-            className="form-select"
-            value={form.category}
+          <select className="form-select" value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
-            disabled={isSubmitting}
-          >
-            {categoryOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
+            disabled={isSubmitting}>
+            {["General Inquiry", "Billing Issues", "Technical Problems", "Others"].map((option) => (
+              <option key={option}>{option}</option>
             ))}
           </select>
         </div>
         <div className="col-md-1">
-          <button
-            className="btn btn-primary w-100"
-            type="submit"
-            disabled={isSubmitting}
-          >
+          <button className="btn btn-primary w-100" type="submit" disabled={isSubmitting}>
             {isSubmitting ? "..." : editingTicket ? "Update" : "Create"}
           </button>
           {editingTicket && (
-            <button
-              type="button"
-              className="btn btn-secondary w-100 mt-2"
-              onClick={() => setEditingTicket(null)}
-              disabled={isSubmitting}
-            >
+            <button type="button" className="btn btn-secondary w-100 mt-2"
+              onClick={() => setEditingTicket(null)} disabled={isSubmitting}>
               Cancel
             </button>
           )}

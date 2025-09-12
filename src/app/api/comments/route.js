@@ -1,6 +1,6 @@
 
 import connectDB from "@/lib/mongodb";
-import support_comment from "@/models/support_comment";
+import support_comment from "@/models/Comment";
 import { NextResponse } from "next/server";
 
 // ✅ CREATE Comment

@@ -1,3 +1,4 @@
+// src/models/supportTicket.js
 import mongoose from "mongoose";
 
 const SupportTicketSchema = new mongoose.Schema(
@@ -7,7 +8,7 @@ const SupportTicketSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: ["General Inquiry", "Biling Issues", "Technical Problems", "Others"],
+      enum: ["General Inquiry", "Billing Issues", "Technical Problems", "Others"],
       default: "General Inquiry",
     },
 
@@ -22,6 +23,9 @@ const SupportTicketSchema = new mongoose.Schema(
       enum: ["Open", "In Progress", "On Hold", "Resolved", "Closed"],
       default: "Open",
     },
+
+    created_by: { type: String }, // store user email or id
+    meter_id: { type: String },   // store assigned meter
 
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },

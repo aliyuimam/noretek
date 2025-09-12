@@ -26,8 +26,9 @@ export default function Login() {
       setMessage(res.data.message);
 
       // Optional: save user email / role in localStorage
-      localStorage.setItem("customerEmail", form.email);
-      localStorage.setItem("customerRole", res.data.role);
+  localStorage.setItem("userEmail", form.email);
+  localStorage.setItem("userRole", res.data.role);
+
 
       // Redirect after a small delay
       if (res.data.role === "Customer") {
@@ -54,7 +55,7 @@ export default function Login() {
         style={{ maxWidth: 600 }}
       >
         <h4 className="mb-4 text-center titleColor text-uppercase font-monospace">
-          Sign In
+          Customer Sign In
         </h4>
 
         {message && <div className="alert alert-info">{message}</div>}

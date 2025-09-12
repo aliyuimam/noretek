@@ -6,9 +6,19 @@ import "bootstrap/dist/css/bootstrap.min.css";
 export default function PropertyUnitForm() {
   const [units, setUnits] = useState([]);
   const [properties, setProperties] = useState([]);
+  const [meters, setMeters] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [showForm, setShowForm] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const meterOptions = ["MTR001", "MTR002", "MTR003", "MTR004"];
+  // 🔐 API login credentials
+  const loginData = {
+    userId: "0001",
+    password: "Ntk0001@#",
+    company: "Noretek Energy",
+  };
+  const [token, setToken] = useState("");
 
   const [form, setForm] = useState({
     property_id: "",
@@ -19,71 +29,139 @@ export default function PropertyUnitForm() {
     date: "",
   });
 
-  const [showForm, setShowForm] = useState(true);
-
+  // Auto login immediately on mount
   useEffect(() => {
-    fetchUnits();
-    fetch("/api/property")
-      .then((res) => res.json())
-      .then((data) => {
-        // Sort properties by _id ascending
-        const sortedProps = [...data].sort((a, b) =>
-          a._id.localeCompare(b._id)
-        );
-        setProperties(sortedProps);
-      });
+    const savedToken = localStorage.getItem("token");
+    if (savedToken) {
+      setToken(savedToken);
+    } else {
+      handleAutoLogin();
+    }
   }, []);
 
-  const fetchUnits = async () => {
-    const res = await fetch("/api/property_unit");
-    setUnits(await res.json());
-    // Sort units in ascending order by property, unit_description, blockno, meter_id
-    const sortedData = [...data].sort((a, b) => {
-      const propA = a.property_id?.property_name || "";
-      const propB = b.property_id?.property_name || "";
-      if (propA.localeCompare(propB) !== 0) return propA.localeCompare(propB);
+  // Fetch data whenever token is available
+  useEffect(() => {
+    if (token) {
+      fetchUnits();
+      fetchProperties();
+      fetchMeters();
+    }
+  }, [token]);
 
-      if (a.unit_description.localeCompare(b.unit_description) !== 0)
-        return a.unit_description.localeCompare(b.unit_description);
+  const handleAutoLogin = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("http://47.107.69.132:9400/API/User/Login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginData),
+      });
 
-      if (a.blockno.localeCompare(b.blockno) !== 0)
-        return a.blockno.localeCompare(b.blockno);
+      if (!res.ok) throw new Error(`Login failed: ${res.status}`);
 
-      return (a.meter_id || "").localeCompare(b.meter_id || "");
-    });
-
-    setUnits(sortedData);
+      const data = await res.json();
+      if (data?.result?.token) {
+        localStorage.setItem("token", data.result.token);
+        setToken(data.result.token);
+        setError("");
+      } else {
+        setError("Auto-login failed. Please try again.");
+      }
+    } catch (err) {
+      setError("Login error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const fetchUnits = async () => {
+    try {
+      const res = await fetch("/api/property_unit");
+      setUnits(await res.json());
+    } catch (err) {
+      setError("Error fetching units: " + err.message);
+    }
+  };
+
+  const fetchProperties = async () => {
+    try {
+      const res = await fetch("/api/property");
+      const data = await res.json();
+      const sortedProps = [...data].sort((a, b) => a._id.localeCompare(b._id));
+      setProperties(sortedProps);
+    } catch (err) {
+      setError("Error fetching properties: " + err.message);
+    }
+  };
+
+  const fetchMeters = async () => {
+    try {
+      const res = await fetch("http://47.107.69.132:9400/API/Meter/Read", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          createDateRange: [],
+          updateDateRange: [],
+          pageNumber: 1,
+          pageSize: 100,
+          company: "Noretek Energy",
+          searchTerm: "",
+          sortField: "meterId",
+          sortOrder: "asc",
+        }),
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        setToken("");
+        handleAutoLogin();
+        return;
+      }
+
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+      const data = await res.json();
+      setMeters(data?.result?.data || []);
+    } catch (err) {
+      setError("Error fetching meters: " + err.message);
+    }
+  };
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editId) {
-      await fetch("/api/property_unit", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editId, ...form }),
+    try {
+      if (editId) {
+        await fetch("/api/property_unit", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editId, ...form }),
+        });
+      } else {
+        await fetch("/api/property_unit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+      }
+      setForm({
+        property_id: "",
+        unit_description: "",
+        blockno: "",
+        meter_id: "",
+        captured_by: "",
+        date: "",
       });
-    } else {
-      await fetch("/api/property_unit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      setEditId(null);
+      fetchUnits();
+    } catch (err) {
+      setError("Error saving unit: " + err.message);
     }
-    setForm({
-      property_id: "",
-      unit_description: "",
-      blockno: "",
-      meter_id: "",
-      captured_by: "",
-      date: "",
-    });
-    setEditId(null);
-    fetchUnits();
   };
 
   const handleEdit = (unit) => {
@@ -101,24 +179,45 @@ export default function PropertyUnitForm() {
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this unit?")) return;
-
-    await fetch("/api/property_unit", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    fetchUnits();
+    try {
+      await fetch("/api/property_unit", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      fetchUnits();
+    } catch (err) {
+      setError("Error deleting unit: " + err.message);
+    }
   };
+
+  if (loading && !token) {
+    return (
+      <div className="container mt-4 text-center">
+        <div className="spinner-border text-primary" role="status" />
+        <p className="mt-2">Connecting to API...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mt-4">
       <h3 className="mb-4 text-center titleColor">Property Unit Management</h3>
 
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+          <button
+            type="button"
+            className="btn-close float-end"
+            onClick={() => setError("")}
+            aria-label="Close"
+          />
+        </div>
+      )}
+
       <div className="d-md-none mb-3 text-center">
-        <button
-          className="btn backgro"
-          onClick={() => setShowForm(!showForm)}
-        >
+        <button className="btn backgro" onClick={() => setShowForm(!showForm)}>
           {showForm ? "Hide Form" : "Add New Unit"}
         </button>
       </div>
@@ -133,7 +232,7 @@ export default function PropertyUnitForm() {
               <div className="row">
                 {/* Property Dropdown */}
                 <div className="col-md-6 mb-3">
-                  <label className="form-label ">Property</label>
+                  <label className="form-label">Property</label>
                   <select
                     className="form-control shadow-none"
                     name="property_id"
@@ -178,20 +277,39 @@ export default function PropertyUnitForm() {
 
                 {/* Meter ID */}
                 <div className="col-md-6 mb-3">
-                  <label className="form-label">Meter ID </label>
+                  <label className="form-label">Meter ID</label>
                   <select
-                    className="form-select shadow-none "
+                    className="form-select shadow-none"
                     name="meter_id"
                     value={form.meter_id}
                     onChange={handleChange}
+                    disabled={!token || meters.length === 0}
                   >
-                    <option value="" >Select Meter</option>
-                    {meterOptions.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
+                    <option value="">Select Meter</option>
+                    {meters
+                      .filter(
+                        (m) =>
+                          !units.some(
+                            (u) =>
+                              u.meter_id === m.meterId && u._id !== editId
+                          )
+                      )
+                      .map((meter) => (
+                        <option key={meter.meterId} value={meter.meterId}>
+                          {meter.meterId}
+                        </option>
+                      ))}
                   </select>
+                  {!token && (
+                    <div className="form-text text-warning">
+                      Login required to load meters
+                    </div>
+                  )}
+                  {token && meters.length === 0 && (
+                    <div className="form-text text-warning">
+                      No meters available or error loading meters
+                    </div>
+                  )}
                 </div>
 
                 {/* Captured By */}
@@ -220,9 +338,18 @@ export default function PropertyUnitForm() {
                   />
                 </div>
               </div>
-              <button type="submit" className="btn backgro w-100">
+              <button
+                type="submit"
+                className="btn backgro w-100"
+                disabled={!token}
+              >
                 {editId ? "Update Unit" : "Add Unit"}
               </button>
+              {!token && (
+                <div className="alert alert-warning mt-3 mb-0">
+                  API authentication required to save data
+                </div>
+              )}
             </form>
           </div>
         </div>
@@ -251,17 +378,13 @@ export default function PropertyUnitForm() {
                   <tr key={u._id}>
                     <td>{idx + 1}</td>
                     <td>{u.property_id?.property_name || "N/A"}</td>
-
-                    {/* Serial Unit Description */}
-                    <td>{`UNIT-${String(idx + 1).padStart(3, "0")}`}</td>
-
-                    {/* Serial Block No */}
-                    <td>{`BLK-${String(idx + 1).padStart(3, "0")}`}</td>
-
-                    {/* Serial Meter ID */}
-                    <td>{`MTR-${String(idx + 1).padStart(3, "0")}`}</td>
+                    <td>{u.unit_description}</td>
+                    <td>{u.blockno}</td>
+                    <td>{u.meter_id}</td>
                     <td>{u.captured_by}</td>
-                    <td>{new Date(u.date).toLocaleDateString()}</td>
+                    <td>
+                      {u.date ? new Date(u.date).toLocaleDateString() : "N/A"}
+                    </td>
                     <td>
                       <button
                         className="btn btn-warning btn-sm me-2"
@@ -289,6 +412,16 @@ export default function PropertyUnitForm() {
           </table>
         </div>
       </div>
+
+      <style jsx>{`
+        .backgro {
+          background-color: #0d6efd;
+          color: white;
+        }
+        .titleColor {
+          color: #0d6efd;
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 // src/app/customer_payment_dashboard/page.jsx
 'use client';
+import PaymentForm from '@/MainComponent/PaymentForm';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 

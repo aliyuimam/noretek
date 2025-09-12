@@ -12,7 +12,7 @@ export default function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("tickets");
   const [stats, setStats] = useState({
@@ -475,6 +475,7 @@ export default function Dashboard() {
                         </div>
                       ))}
                     </div>
+                    
                   ) : (
                     <p className="text-muted">No comments yet</p>
                   )}

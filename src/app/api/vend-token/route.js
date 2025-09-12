@@ -1,8 +1,7 @@
 // src/app/api/vend-token/route.js
-import connectDB from '@/lib/mongodb';
-import TokenTransaction from '@/lib/TokenTransaction';
 import { NextResponse } from 'next/server';
- // You'll need to create this model
+import connectDB from '@/lib/mongodb';
+import TokenTransaction from '@/models/TokenTransaction'; // You'll need to create this model
 
 export async function POST(request) {
   try {

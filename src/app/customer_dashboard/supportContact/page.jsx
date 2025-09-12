@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 export default function CustomerSupportForm() {
   const [formData, setFormData] = useState({
@@ -15,18 +15,6 @@ export default function CustomerSupportForm() {
     supportTicket: "",
   });
 
-  // 👇 Auto-fill name & ID from logged-in customer
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user) {
-      setFormData(prev => ({
-        ...prev,
-        customerName: user.name,
-        customerId: user.id,
-      }));
-    }
-  }, []);
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -37,7 +25,6 @@ export default function CustomerSupportForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Form Submitted:", formData);
-    // here you can POST to /api/support with formData + token
     alert("Form submitted successfully!");
   };
 
@@ -73,7 +60,7 @@ export default function CustomerSupportForm() {
               />
             </div>
 
-            {/* Customer Name (auto-filled, read-only) */}
+            {/* Customer Name */}
             <div className="col-12 col-lg-6">
               <label className="form-label">Customer Name</label>
               <input
@@ -81,11 +68,12 @@ export default function CustomerSupportForm() {
                 name="customerName"
                 className="form-control"
                 value={formData.customerName}
-                readOnly
+                onChange={handleChange}
+                required
               />
             </div>
 
-            {/* Customer ID (auto-filled, read-only) */}
+            {/* Customer ID */}
             <div className="col-12 col-lg-6">
               <label className="form-label">Customer ID</label>
               <input
@@ -93,7 +81,8 @@ export default function CustomerSupportForm() {
                 name="customerId"
                 className="form-control"
                 value={formData.customerId}
-                readOnly
+                onChange={handleChange}
+                required
               />
             </div>
 
@@ -136,7 +125,7 @@ export default function CustomerSupportForm() {
               />
             </div>
 
-            {/* Support Ticket */}
+             {/* Support Ticket */}
             <div className="col-12 col-lg-6">
               <label className="form-label">Support Ticket</label>
               <input
@@ -150,7 +139,7 @@ export default function CustomerSupportForm() {
             </div>
 
             {/* Statement */}
-            <div className="col-12">
+            <div className="col-12 col-lg-12">
               <label className="form-label">Statement</label>
               <textarea
                 name="statement"
@@ -161,6 +150,8 @@ export default function CustomerSupportForm() {
                 required
               ></textarea>
             </div>
+
+           
           </div>
 
           {/* Submit Button */}

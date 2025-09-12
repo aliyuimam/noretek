@@ -1,8 +1,8 @@
 // app/api/payments/generates/route.js
-import connectDB from "@/lib/mongodb";
-import Payment from "@/lib/Payment";
-import Token from "@/models/Token";
 import { NextResponse } from "next/server";
+import connectDB from "@/lib/mongodb";
+import Payment from "@/models/Payment";
+import Token from "@/models/Token";
 
 export async function POST(request) {
   await connectDB();

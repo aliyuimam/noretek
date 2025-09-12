@@ -1,9 +1,6 @@
 // /src/app/api/tokens/history/route.js
-
-import connectDB from "@/lib/mongodb";
-import { getConnectionStatus } from "@/lib/mongodb";
-import Token from "@/models/Token";
-
+import { connectDB, getConnectionStatus } from '@/lib/mongodb';
+import Token from '@/models/Token';
 
 export async function GET(request) {
   try {

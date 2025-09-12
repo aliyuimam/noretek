@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import connectDB from "@/lib/mongodb";
-import Payment from "@/lib/Payment";
+import Payment from "@/models/Payment";
 
 export async function POST(request) {
   try {
