@@ -1,4 +1,3 @@
-
 import connectDB from "@/lib/mongodb";
 import support_comment from "@/models/Comment";
 import { NextResponse } from "next/server";
@@ -8,20 +7,21 @@ export async function POST(req) {
   try {
     await connectDB();
     const body = await req.json();
-    const { ticket_id, customer_id, comment } = body;
+    const { ticket_id, customer_id, comment, user_name, user_role } = body;
 
-    if (!ticket_id || !customer_id || !comment) {
+    if (!ticket_id || !comment) {
       return NextResponse.json(
-        { success: false, message: "All fields are required" },
+        { success: false, message: "Ticket ID and comment are required" },
         { status: 400 }
       );
     }
 
-    const newComment = await support_comment.create({
-      ticket_id,
-      customer_id,
-      comment,
-    });
+    const payload = { ticket_id, comment };
+    if (customer_id) payload.customer_id = customer_id;
+    if (user_name) payload.user_name = user_name;
+    if (user_role) payload.user_role = user_role;
+
+    const newComment = await support_comment.create(payload);
 
     await newComment.populate("customer_id", "name email");
     await newComment.populate("ticket_id", "title");
@@ -48,12 +48,24 @@ export async function GET(req) {
 
     const filter = ticketId ? { ticket_id: ticketId } : {};
 
-    const comments = await support_comment.find(filter)
+    const comments = await support_comment
+      .find(filter)
       .populate("customer_id", "name email")
       .populate("ticket_id", "title")
-      .sort({ created_at: -1 });
+      .sort({ created_at: 1 }); // oldest → newest
 
-    return NextResponse.json({ success: true, comments });
+    const formatted = comments.map((c) => ({
+      id: c._id,
+      comment_id: c._id,
+      ticket_id: c.ticket_id?._id,
+      comment: c.comment,
+      created_at: c.created_at,
+      user_name: c.user_name || c.customer_id?.name || "Unknown",
+      user_email: c.customer_id?.email || null,
+      user_role: c.user_role || (c.customer_id ? "customer" : "support_officer"),
+    }));
+
+    return NextResponse.json({ success: true, comments: formatted });
   } catch (error) {
     console.error("Comment GET error:", error);
     return NextResponse.json(
@@ -70,11 +82,8 @@ export async function PUT(req) {
     const body = await req.json();
     const { id, comment } = body;
 
-    const updated = await support_comment.findByIdAndUpdate(
-      id,
-      { comment },
-      { new: true }
-    )
+    const updated = await support_comment
+      .findByIdAndUpdate(id, { comment }, { new: true })
       .populate("customer_id", "name email")
       .populate("ticket_id", "title");
 

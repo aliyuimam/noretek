@@ -1,0 +1,102 @@
+:root {
+  --primaryColor: #0b0c27;
+  --secondaryColor: #0d10ad;
+  --accentColor: #085fbc;
+  --hoverColor: #4950a5;
+  --softBg: #f8f9fc;
+  --cardBg: #ffffff;
+  --textDark: #212529;
+  --textLight: #f8f9fa;
+}
+
+/* === Dashboard Layout === */
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--softBg);
+}
+
+/* === Sidebar === */
+.sidebar {
+  flex: 0 0 250px; /* 👈 fixed width (never resizes) */
+  background: var(--cardBg); /* 👈 white background */
+  color: var(--textDark);
+  border-right: 1px solid #e5e7eb;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh; /* 👈 always full height */
+}
+
+.sidebar .logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--primaryColor);
+  text-decoration: none;
+  margin-bottom: 2rem;
+}
+
+.sidebar .menu-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6c757d;
+  margin: 1rem 0 0.5rem;
+}
+
+.sidebar .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  color: var(--textDark);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar .menu-item:hover {
+  background: var(--softBg);
+  color: var(--accentColor);
+}
+
+.sidebar .menu-item.active {
+  background: var(--accentColor);
+  color: white;
+  font-weight: 600;
+}
+
+/* === Topbar === */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--cardBg);
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 64px;
+}
+
+/* === Content Area === */
+.content-area {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.card {
+  border: none;
+  border-radius: 14px;
+  background: var(--cardBg);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}

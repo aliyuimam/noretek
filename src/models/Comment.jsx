@@ -11,7 +11,14 @@ const SupportCommentSchema = new mongoose.Schema(
     customer_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer", // Reference to Customer collection
-      required: true,
+    },
+
+    // ✅ NEW FIELDS for support officer comments
+    user_name: { type: String },
+    user_role: {
+      type: String,
+      enum: ["customer", "support_officer"],
+      default: "customer",
     },
 
     comment: {

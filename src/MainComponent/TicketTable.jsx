@@ -22,7 +22,7 @@ export default function TicketTable({ tickets, onEdit, onDelete, onViewComments 
             <th>ID</th>
             <th>Title</th>
             <th>Category</th>
-            <th>Created By</th>
+            <th>Created By</th> {/* ✅ show customer email */}
             <th>Status</th>
             <th>Priority</th>
             <th>Created</th>
@@ -31,13 +31,13 @@ export default function TicketTable({ tickets, onEdit, onDelete, onViewComments 
         </thead>
         <tbody>
           {tickets.map((ticket) => (
-            <tr key={ticket.ticket_id}>
+            <tr key={ticket._id || ticket.ticket_id}>
               <td>
-                <strong>#{ticket.ticket_id}</strong>
+                <strong>#{ticket._id?.slice(-6) || ticket.ticket_id}</strong>
               </td>
               <td>{ticket.title}</td>
               <td>{ticket.category}</td>
-              <td>{ticket.created_by_name}</td>
+              <td>{ticket.created_by || "N/A"}</td> {/* ✅ fix: use created_by */}
               <td>
                 <StatusBadge status={ticket.status} />
               </td>
@@ -55,20 +55,9 @@ export default function TicketTable({ tickets, onEdit, onDelete, onViewComments 
                     className="btn btn-sm btn-outline-info"
                     onClick={() => onViewComments(ticket)}
                   >
-                    <i className="bi bi-chat-dots"></i>
-                  </button>
-                  <button
-                    className="btn btn-sm btn-outline-primary"
-                    onClick={() => onEdit(ticket)}
-                  >
                     <i className="bi bi-pencil"></i>
                   </button>
-                  <button
-                    className="btn btn-sm btn-outline-danger"
-                    onClick={() => onDelete(ticket.ticket_id)}
-                  >
-                    <i className="bi bi-trash"></i>
-                  </button>
+                 
                 </div>
               </td>
             </tr>

@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { initializeTransaction } from "@/lib/paystack";
 import { connectDB } from "@/lib/mongodb";
+import Payment from "@/models/Payment";   // ✅ FIX: Import model
 
 export async function POST(request) {
   try {
@@ -23,10 +24,16 @@ export async function POST(request) {
       );
     }
 
+    // ✅ Always enforce purchase_type and meter_id
+    const enrichedMetadata = {
+      ...metadata,
+      purchase_type: "electricity_token",
+    };
+
     const payload = {
       email,
-      amount: amount * 100,
-      metadata: metadata || {},
+      amount: amount * 100, // Paystack requires kobo
+      metadata: enrichedMetadata,
       callback_url: `${
         process.env.NEXTAUTH_URL || "http://localhost:3000"
       }/customer_payment_dashboard`,
@@ -47,24 +54,23 @@ export async function POST(request) {
 
           const paymentData = {
             reference,
-            user_id: metadata?.user_id || null,
+            user_id: enrichedMetadata?.user_id || null,
             customer_email: email.toLowerCase(),
-            customer_name: metadata?.customer_name || null,
-            customer_phone: metadata?.customer_phone || null,
+            customer_name: enrichedMetadata?.customer_name || null,
+            customer_phone: enrichedMetadata?.customer_phone || null,
             amount: amount,
             currency: "NGN",
             channel: "paystack",
             transaction_id: transactionId,
             payment_method: "card",
             metadata: {
-              ...metadata,
+              ...enrichedMetadata,
               authorization_url: response.data.authorization_url,
               callback_url: payload.callback_url,
-              purchase_type: "electricity_token",
             },
             status: "pending",
-            meter_id: metadata?.meterNumber || null,
-            meter_number: metadata?.meterNumber || null,
+            meter_id: enrichedMetadata?.meterId || enrichedMetadata?.meterNumber || null, // ✅ Fix
+            meter_number: enrichedMetadata?.meterNumber || enrichedMetadata?.meterId || null,
             initiated_at: new Date(),
           };
 
@@ -87,6 +93,7 @@ export async function POST(request) {
 
     return NextResponse.json(response);
   } catch (error) {
+    console.error("Initialize error:", error);
     return NextResponse.json(
       {
         status: false,
@@ -98,20 +105,6 @@ export async function POST(request) {
 }
 
 export async function GET() {
-  return NextResponse.json(
-    { status: false, message: "Method not allowed" },
-    { status: 405 }
-  );
-}
-
-export async function PUT() {
-  return NextResponse.json(
-    { status: false, message: "Method not allowed" },
-    { status: 405 }
-  );
-}
-
-export async function DELETE() {
   return NextResponse.json(
     { status: false, message: "Method not allowed" },
     { status: 405 }

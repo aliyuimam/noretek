@@ -12,7 +12,11 @@ export default function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [newComment, setNewComment] = useState([]);
+
+  // ✅ fix: correct states
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("tickets");
   const [stats, setStats] = useState({
@@ -77,7 +81,8 @@ export default function Dashboard() {
         } else if (parsedUser.role === "Admin") {
           router.push("/admin_dashboard");
         } else if (parsedUser.role === "Support Officer") {
-          router.push("/support_officer_dashboard");
+          setUser(parsedUser); // ✅ stay here
+          setCheckingAuth(false);
         } else {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
@@ -93,59 +98,6 @@ export default function Dashboard() {
     check();
   }, [router]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoginError("");
-    setLoggingIn(true);
-
-    try {
-      const res = await fetch("/api/stafflogin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-      if (!data.success) {
-        setLoginError(data.error || "Invalid credentials");
-        setLoggingIn(false);
-        return;
-      }
-
-      const loggedUser = data.user || data.staff;
-      if (!loggedUser) {
-        setLoginError("Login response missing user data");
-        setLoggingIn(false);
-        return;
-      }
-
-      if (loggedUser.role !== "Enrollment Officer") {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(loggedUser));
-        if (loggedUser.role === "Admin") {
-          router.push("/admin_dashboard");
-        } else if (loggedUser.role === "Support Officer") {
-          router.push("/support_officer_dashboard");
-        } else {
-          setLoginError("Access denied for this role");
-        }
-        setLoggingIn(false);
-        return;
-      }
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(loggedUser));
-      setUser(loggedUser);
-      setEmail("");
-      setPassword("");
-      setLoggingIn(false);
-    } catch (err) {
-      console.error("Login error:", err);
-      setLoginError("Server error");
-      setLoggingIn(false);
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -154,7 +106,7 @@ export default function Dashboard() {
     router.push("/");
   };
 
-  // ✅ FIXED: fetch tickets from DB
+  // ✅ Fetch tickets
   const fetchTickets = async () => {
     try {
       const res = await fetch("/api/tickets");
@@ -166,7 +118,7 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ FIXED: fetch complaints from DB
+  // ✅ Fetch complaints
   const fetchComplaints = async () => {
     try {
       const res = await fetch("/api/comments");
@@ -178,7 +130,7 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ FIXED: fetch comments for a specific ticket
+  // ✅ Fetch comments for a specific ticket
   const fetchComments = async (ticket_id) => {
     try {
       const res = await fetch(`/api/comments?ticket_id=${ticket_id}`);
@@ -240,7 +192,7 @@ export default function Dashboard() {
         </div>
 
         <div className="card-body">
-          {/* Statistics */}
+          {/* Stats */}
           <div className="row mb-4">
             <div className="col-md-2 col-6 mb-4">
               <div className="card text-center border-primary">
@@ -274,25 +226,15 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="col-md-2 col-6 mb-4">
-              <div className="card text-center border-secondary">
-                <div className="card-body">
-                  <button
-                    className="btn btn-outline-secondary"
-                    onClick={loadAllData}
-                  >
-                    <i className="bi bi-arrow-clockwise"></i> Refresh
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Tabs */}
           <ul className="nav nav-tabs mb-4">
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === "tickets" ? "active" : ""}`}
+                className={`nav-link ${
+                  activeTab === "tickets" ? "active" : ""
+                }`}
                 onClick={() => setActiveTab("tickets")}
               >
                 <i className="bi bi-ticket-detailed me-2"></i>
@@ -301,7 +243,9 @@ export default function Dashboard() {
             </li>
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === "complaints" ? "active" : ""}`}
+                className={`nav-link ${
+                  activeTab === "complaints" ? "active" : ""
+                }`}
                 onClick={() => setActiveTab("complaints")}
               >
                 <i className="bi bi-chat-dots me-2"></i>
@@ -310,7 +254,7 @@ export default function Dashboard() {
             </li>
           </ul>
 
-          {/* Tickets Tab */}
+          {/* Tickets */}
           {activeTab === "tickets" && (
             <TicketTable
               tickets={tickets}
@@ -323,7 +267,7 @@ export default function Dashboard() {
             />
           )}
 
-          {/* Complaints Tab */}
+          {/* Complaints */}
           {activeTab === "complaints" && (
             <div>
               <h4>Customer Comments</h4>
@@ -332,80 +276,35 @@ export default function Dashboard() {
                   <thead className="table-light">
                     <tr>
                       <th>Comment #</th>
-                      <th>Customer</th>
-                      <th>Issue Type</th>
-                      <th>Urgency</th>
-                      <th>Status</th>
+                      <th>User</th>
+                      <th>Role</th>
+                      <th>Comment</th>
                       <th>Received</th>
-                      <th>Details</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {complaints.map((comment) => (
-                      <tr key={comment.comment_id || comment.id}>
+                    {complaints.map((c) => (
+                      <tr key={c.comment_id}>
                         <td>
-                          <strong>#{comment.comment_id || comment.id}</strong>
+                          <strong>#{c.comment_id}</strong>
                         </td>
                         <td>
-                          <strong>{comment.customer_name}</strong>
+                          <strong>{c.user_name}</strong>
                           <br />
                           <small className="text-muted">
-                            {comment.customer_email}
+                            {c.user_email || "—"}
                           </small>
                         </td>
                         <td>
-                          <span className="badge bg-info text-capitalize">
-                            {comment.comment_type?.replace("_", " ") || "other"}
+                          <span className="badge bg-secondary text-capitalize">
+                            {c.user_role}
                           </span>
                         </td>
-                        <td>
-                          <span
-                            className={`badge bg-${
-                              comment.urgency === "critical"
-                                ? "danger"
-                                : comment.urgency === "high"
-                                ? "warning"
-                                : comment.urgency === "medium"
-                                ? "info"
-                                : "secondary"
-                            }`}
-                          >
-                            {comment.urgency}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`badge bg-${
-                              comment.status === "pending"
-                                ? "warning"
-                                : comment.status === "processed"
-                                ? "success"
-                                : "secondary"
-                            }`}
-                          >
-                            {comment.status}
-                          </span>
-                        </td>
+                        <td>{c.comment}</td>
                         <td>
                           <small>
-                            {new Date(comment.created_at).toLocaleDateString()}
+                            {new Date(c.created_at).toLocaleDateString()}
                           </small>
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-outline-info"
-                            onClick={() =>
-                              alert(
-                                `Comment Details:\n\nSubject: ${
-                                  comment.subject
-                                }\n\nMessage: ${
-                                  comment.message
-                                }\n\nMeter: ${comment.meter_number || "N/A"}`
-                              )
-                            }
-                          >
-                            <i className="bi bi-info-circle"></i> Details
-                          </button>
                         </td>
                       </tr>
                     ))}
@@ -414,7 +313,7 @@ export default function Dashboard() {
                 {complaints.length === 0 && (
                   <div className="text-center py-4 text-muted">
                     <i className="bi bi-chat-dots display-4"></i>
-                    <p>No customer complaints found</p>
+                    <p>No comments found</p>
                   </div>
                 )}
               </div>
@@ -455,6 +354,10 @@ export default function Dashboard() {
                   <strong>Status:</strong>{" "}
                   <StatusBadge status={selectedTicket.status} />
                 </p>
+                <p>
+                  <strong>Created By:</strong>{" "}
+                  {selectedTicket.created_by || "Unknown"}
+                </p>
 
                 <div className="mt-4">
                   <h6>Comments</h6>
@@ -462,7 +365,7 @@ export default function Dashboard() {
                     <div className="border rounded p-3">
                       {comments.map((c) => (
                         <div
-                          key={c.comment_id || c.id}
+                          key={c.comment_id}
                           className="mb-3 p-2 border-bottom"
                         >
                           <div className="d-flex justify-content-between">
@@ -475,12 +378,55 @@ export default function Dashboard() {
                         </div>
                       ))}
                     </div>
-                    
                   ) : (
                     <p className="text-muted">No comments yet</p>
                   )}
+
+                  {/* ✅ Add Comment Box */}
+                  <div className="mt-3">
+                    <textarea
+                      className="form-control mb-2"
+                      placeholder="Write a comment..."
+                      rows="3"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                    ></textarea>
+                    <button
+                      className="btn btn-primary"
+                      disabled={!newComment.trim()}
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/comments", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              ticket_id:
+                                selectedTicket.ticket_id || selectedTicket._id,
+                              comment: newComment.trim(),
+                              user_name: user?.name || "Support Officer",
+                              user_role: "support_officer",
+                            }),
+                          });
+
+                          const data = await res.json();
+                          if (res.ok) {
+                            setComments((prev) => [...prev, data.comment]);
+                            setNewComment("");
+                          } else {
+                            alert(data.error || "Failed to add comment");
+                          }
+                        } catch (err) {
+                          console.error("Error adding comment:", err);
+                          alert("Network error");
+                        }
+                      }}
+                    >
+                      Add Comment
+                    </button>
+                  </div>
                 </div>
               </div>
+
               <div className="modal-footer">
                 <button
                   type="button"

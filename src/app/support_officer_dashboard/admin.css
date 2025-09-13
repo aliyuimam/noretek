@@ -1,147 +1,178 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
 @import "bootstrap-icons";
 
-:root{
-  --testColor:#0b0c27;
-  --hoverColor: #75757a;
-  --softColor:#f1fbff;
+/* === Root Colors === */
+:root {
+  --primaryColor: #0b0c27;       /* Deep navy */
+  --secondaryColor: #2a2d57;     /* Softer navy */
+  --accentColor: #007bff;        /* Blue accent */
+  --hoverColor: #4950a5;         /* Hover blue */
+  --softBg: #f4f6fb;             /* Light dashboard background */
+  --cardBg: #ffffff;
+  --textDark: #212529;
+  --textLight: #f8f9fa;
 }
-*{
-  font-family: poppins;
+
+/* === Global Reset === */
+* {
+  font-family: "Poppins", sans-serif;
 }
 body {
-  background-color: var(--softColor);
+  background-color: var(--softBg);
+  color: var(--textDark);
+  line-height: 1.6;
 }
 
-/*--------------------------------------------------------------
-# MainPage Section
---------------------------------------------------------------*/
-.mainPage {
-  width: 100%;
-  height: 100vh;
-  background: 
-    url("/assets/slider.png") top center no-repeat;
-  background-size: cover;
+/* === Dashboard Header === */
+.custom-header {
+  background: linear-gradient(135deg, var(--primaryColor), var(--secondaryColor));
+  padding: 2.5rem 1rem;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
-.mainPage .uper h1 {
+.dashboard-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--textLight);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+}
+
+.dashboard-subtitle {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #d1d5db;
   margin: 0;
-  font-size: 48px;
-  font-weight: 700px;
-  color: var(--testColor);
 }
 
-.mainPage .uper h2 {
-  color: var(--testColor);
-  margin: 15px 0 0 0;
-  font-size: 26px;
-}
-.mainPage .uper .img-head {
-  color: var(--testColor);
-  font-size: 26px;
-}
-
-.mainPage .uper .btn-get-started {
-  margin-top: 30px;
-  line-height: 0;
-  padding: 15px 40px;
-  border-radius: 4px;
-  transition: 0.5s;
-  color: var(--lightColor);
-  background: linear-gradient(var(--testColor), var(--softColor));
-  box-shadow: 0px 5px 30px rgba(65, 84, 241, 0.4);
+/* === Stats Cards === */
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
 }
 
-.mainPage .uper .btn-get-started span {
-  font-family: "Nunito", sans-serif;
-  font-weight: 600px;
-  font-size: 20px;
-  letter-spacing: 2px;
+.stats-card {
+  flex: 1;
+  min-width: 180px;
+  background: var(--cardBg);
+  border-radius: 14px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease-in-out;
 }
 
-.mainPage .uper .btn-get-started i {
-  margin-left: 5px;
-  font-size: 18px;
-  transition: 0.3s;
+.stats-card:hover {
+  transform: translateY(-3px);
 }
 
-.mainPage .uper .btn-get-started:hover i {
-  transform: translateX(5px);
+.stats-card h3 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
 }
 
-.mainPage .uper img {
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
-  border-bottom-left-radius: 50px;
-  border-bottom-right-radius: 50px;
-}
-.mainPage .uper .hero-img {
-  text-align: right;
+.stats-card span {
+  font-size: 0.9rem;
+  color: #6c757d;
 }
 
-@media (min-width: 1024px) {
-  .mainPage {
-    background-attachment: fixed;
-  }
-  .mainPage .uper .hero-img img {
-    height: 85%;
-    width: 100%;
-  }
+/* === Tabs === */
+.nav-tabs .nav-link {
+  border: none;
+  font-weight: 500;
+  color: var(--secondaryColor);
+  padding: 0.75rem 1.25rem;
+  border-radius: 30px;
+  transition: all 0.2s ease;
+}
+.nav-tabs .nav-link.active {
+  background: var(--accentColor);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
 }
 
-@media (max-width: 768px) {
-  .mainPage {
-    height: auto;
-    text-align: center;
-    padding: 10px 0 60px 0;
-  }
-  .mainPage .uper img {
-    border-top-right-radius: 10px;
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
-  }
-  .mainPage .uper .hero-img {
-    text-align: center;
-    margin-top: 10px;
-  }
-
-  .mainPage .uper .hero-img img {
-    width: 100%;
-  }
-
-  .mainPage .uper h1 {
-    margin-top: 20px;
-    font-size: 22px;
-  }
-
-  .mainPage .uper h2 {
-    font-size: 18px;
-  }
+/* === Cards === */
+.card {
+  border: none;
+  border-radius: 14px;
+  background: var(--cardBg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease-in-out;
 }
-.custom-sidebar {
-  width: 250px;
-  min-height: 100vh;
-  background-color: white;
-  border-right: 1px solid #dee2e6;
+.card:hover {
+  transform: translateY(-2px);
 }
 
-@media (max-width: 991.98px) {
-  .custom-sidebar {
-    position: absolute;
-    z-index: 1050;
-    left: -250px;
-    top: 0;
-    height: 100vh;
-    transition: left 0.3s ease-in-out;
-  }
-
-  .custom-sidebar.open {
-    left: 0;
-  }
+/* === Tables === */
+.table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.table th {
+  background: var(--primaryColor);
+  color: var(--textLight);
+  font-weight: 600;
+}
+.table-hover tbody tr:hover {
+  background-color: #eef3ff;
+  transition: background 0.2s ease;
 }
 
-/* Optional: can go in your global styles or component styles */
-.custom-sidebar {
-  width: 250px;
+/* === Buttons === */
+.btn {
+  border-radius: 30px;
+  font-weight: 500;
+  transition: all 0.3s ease-in-out;
+}
+.btn-primary {
+  background: var(--accentColor);
+  border: none;
+}
+.btn-primary:hover {
+  background: var(--hoverColor);
+}
+.btn-outline-secondary {
+  border: 1px solid var(--secondaryColor);
+  color: var(--secondaryColor);
+}
+.btn-outline-secondary:hover {
+  background: var(--secondaryColor);
+  color: white;
 }
 
+/* === Modal === */
+.modal-content {
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+.modal-header {
+  background: var(--primaryColor);
+  color: var(--textLight);
+  border-bottom: none;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+.modal-footer {
+  border-top: none;
+}
+
+/* === Textarea (comments) === */
+textarea.form-control {
+  border-radius: 10px;
+  resize: none;
+  border: 1px solid #d1d5db;
+  transition: border 0.2s ease;
+}
+textarea.form-control:focus {
+  border-color: var(--accentColor);
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
+}

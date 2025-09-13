@@ -68,44 +68,73 @@ export default function TicketForm({ onSave, editingTicket, setEditingTicket }) 
   return (
     <form onSubmit={handleSubmit} className="mb-4">
       {error && <div className="alert alert-danger">{error}</div>}
+
       <div className="row g-2">
         <div className="col-md-4">
-          <input className="form-control" placeholder="Title *"
-            value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required disabled={isSubmitting}
+          <input
+            className="form-control"
+            placeholder="Title *"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            required
+            disabled={isSubmitting}
           />
         </div>
+
         <div className="col-md-3">
-          <input className="form-control" placeholder="Description *"
-            value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-            required disabled={isSubmitting}
+          <input
+            className="form-control"
+            placeholder="Description *"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            required
+            disabled={isSubmitting}
           />
         </div>
+
         <div className="col-md-2">
-          <select className="form-select" value={form.priority}
+          <select
+            className="form-select"
+            value={form.priority}
             onChange={(e) => setForm({ ...form, priority: e.target.value })}
-            disabled={isSubmitting}>
+            disabled={isSubmitting}
+          >
             {["Low", "Medium", "High", "Critical"].map((option) => (
               <option key={option}>{option}</option>
             ))}
           </select>
         </div>
+
         <div className="col-md-2">
-          <select className="form-select" value={form.category}
+          <select
+            className="form-select"
+            value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
-            disabled={isSubmitting}>
-            {["General Inquiry", "Billing Issues", "Technical Problems", "Others"].map((option) => (
-              <option key={option}>{option}</option>
-            ))}
+            disabled={isSubmitting}
+          >
+            {["General Inquiry", "Billing Issues", "Technical Problems", "Others"].map(
+              (option) => (
+                <option key={option}>{option}</option>
+              )
+            )}
           </select>
         </div>
-        <div className="col-md-1">
-          <button className="btn btn-primary w-100" type="submit" disabled={isSubmitting}>
+
+        <div className="col-md-1 d-flex flex-column">
+          <button
+            className="btn btn-primary mb-2"
+            type="submit"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "..." : editingTicket ? "Update" : "Create"}
           </button>
           {editingTicket && (
-            <button type="button" className="btn btn-secondary w-100 mt-2"
-              onClick={() => setEditingTicket(null)} disabled={isSubmitting}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setEditingTicket(null)}
+              disabled={isSubmitting}
+            >
               Cancel
             </button>
           )}

@@ -1,20 +1,25 @@
 "use client";
 import { useState, useEffect } from "react";
 
-export default function PaymentForm({ userEmail, userId }) {
+export default function PaymentForm({ userEmail, userId, presetMeter }) {
   const [amount, setAmount] = useState("");
-  const [meterNumber, setMeterNumber] = useState("");
+  const [meterNumber, setMeterNumber] = useState(presetMeter || "");
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [fetchingMeter, setFetchingMeter] = useState(true);
+  const [fetchingMeter, setFetchingMeter] = useState(!presetMeter);
 
-  // Fetch user data including meter number
+  // Fetch user data including meter number only if preset not passed
   useEffect(() => {
+    if (presetMeter) {
+      setMeterNumber(presetMeter);
+      setFetchingMeter(false);
+      return;
+    }
+
     const fetchUserData = async () => {
       try {
         setFetchingMeter(true);
 
-        // 1️⃣ Get token from localStorage (or cookie)
         const token = localStorage.getItem("token");
         if (!token) {
           console.warn("No auth token found in localStorage");
@@ -22,11 +27,8 @@ export default function PaymentForm({ userEmail, userId }) {
           return;
         }
 
-        // 2️⃣ Fetch from /api/profile with Authorization header
-        const response = await fetch("/api/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const response = await fetch("/api/user/profile", {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.ok) {
@@ -36,10 +38,10 @@ export default function PaymentForm({ userEmail, userId }) {
         }
 
         const data = await response.json();
-        if (data.success && data.customer) {
-          setUserData(data.customer);
-          if (data.customer.meterId) {
-            setMeterNumber(data.customer.meterId);
+        if (data.success && data.user) {
+          setUserData(data.user);
+          if (data.user.meterId) {
+            setMeterNumber(data.user.meterId);
           }
         }
       } catch (error) {
@@ -50,13 +52,10 @@ export default function PaymentForm({ userEmail, userId }) {
     };
 
     fetchUserData();
-  }, [userEmail]);
+  }, [userEmail, presetMeter]);
 
-  // 🔹 initializePayment stays same...
   const initializePayment = async (email, amount, meterNumber, userId = null) => {
     try {
-      console.log("🔄 Initializing payment for:", email);
-
       if (!meterNumber || meterNumber.trim() === "") {
         throw new Error("Meter number is required");
       }
@@ -80,7 +79,6 @@ export default function PaymentForm({ userEmail, userId }) {
       });
 
       const data = await response.json();
-      console.log("📦 Payment initialization response:", data);
 
       if (data.status) {
         if (typeof window !== "undefined") {
@@ -117,13 +115,6 @@ export default function PaymentForm({ userEmail, userId }) {
     }
   };
 
-  const handleMeterNumberChange = (e) => {
-    const value = e.target.value;
-    if (/^[a-zA-Z0-9-]*$/.test(value)) {
-      setMeterNumber(value);
-    }
-  };
-
   return (
     <div className="card shadow-sm">
       <div className="card-header bColor">
@@ -151,7 +142,7 @@ export default function PaymentForm({ userEmail, userId }) {
                   type="text"
                   className="form-control shadow-none"
                   value={meterNumber}
-                  onChange={handleMeterNumberChange}
+                  disabled={!!presetMeter || !!userData?.meterId} // 🔒 lock if already set
                   required
                   placeholder="Enter your meter number"
                   maxLength={20}

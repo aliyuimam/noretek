@@ -1,7 +1,7 @@
 // /src/app/api/payments/history/route.js
 
 import connectDB, { getConnectionStatus } from "@/lib/mongodb";
-
+import Payment from "@/models/Payment";
 
 export async function GET(request) {
   try {
