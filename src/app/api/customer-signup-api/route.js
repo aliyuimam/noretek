@@ -1,3 +1,4 @@
+// src/app/api/customer-signup-api/route.js
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -21,8 +22,8 @@ export async function POST(req) {
       role,
       certifiName,
       certifiNo,
-      propertyName,
-      propertyUnit,
+      property_id,
+      unit_id,
     } = body;
 
     if (
@@ -35,8 +36,8 @@ export async function POST(req) {
       !role ||
       !certifiName ||
       !certifiNo ||
-      !propertyName ||
-      !propertyUnit
+      !property_id ||
+      !unit_id
     ) {
       return NextResponse.json(
         { success: false, message: "All fields are required" },
@@ -72,8 +73,8 @@ export async function POST(req) {
       role,
       certifiName,
       certifiNo,
-      propertyName,
-      propertyUnit,
+      propertyName: property_id, // 👈 stored as ObjectId
+      propertyUnit: unit_id,     // 👈 stored as ObjectId
     });
 
     // Generate JWT
@@ -101,15 +102,18 @@ export async function POST(req) {
   }
 }
 
-// GET all customers
+// GET all customers (with property + unit populated)
 export async function GET() {
   try {
     await connectDB();
     const customers = await CustomerTable.find()
-      .populate("propertyName", "property_name")
-      .populate("propertyUnit", "unit_description blockno");
+      .populate("propertyName", "property_name property_location property_address")
+      .populate("propertyUnit", "unit_description blockno meter_id");
 
-    return NextResponse.json({ success: true, customers });
+    return NextResponse.json({
+      success: true,
+      customers,
+    });
   } catch (error) {
     console.error("GET customers error:", error);
     return NextResponse.json(
@@ -131,8 +135,8 @@ export async function PUT(req) {
       phone,
       address,
       role,
-      propertyName,
-      propertyUnit,
+      property_id,
+      unit_id,
       certifiName,
       certifiNo,
     } = body;
@@ -145,8 +149,8 @@ export async function PUT(req) {
         phone,
         address,
         role,
-        propertyName,
-        propertyUnit,
+        propertyName: property_id,
+        propertyUnit: unit_id,
         certifiName,
         certifiNo,
       },

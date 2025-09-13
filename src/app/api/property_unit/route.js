@@ -3,17 +3,20 @@ import connectDB from "@/lib/mongodb";
 import PropertyUnit from "@/models/PropertyUnit";
 
 // GET all units
+// GET all units
 export async function GET() {
   try {
     await connectDB();
     const units = await PropertyUnit.find()
-      .populate("property_id")
+      .populate("property_id", "property_name") // 👈 only property_name & _id
       .sort({ createdAt: -1 });
+
     return new Response(JSON.stringify(units), { status: 200 });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
+
 
 // POST new unit
 export async function POST(request) {

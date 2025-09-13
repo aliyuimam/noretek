@@ -51,7 +51,7 @@ export default function PropertyUnitForm() {
   const handleAutoLogin = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://47.107.69.132:9400/API/User/Login", {
+      const res = await fetch("/api/noretek-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginData),
@@ -60,9 +60,9 @@ export default function PropertyUnitForm() {
       if (!res.ok) throw new Error(`Login failed: ${res.status}`);
 
       const data = await res.json();
-      if (data?.result?.token) {
-        localStorage.setItem("token", data.result.token);
-        setToken(data.result.token);
+      if (data?.token) {
+        localStorage.setItem("token", data.token);
+        setToken(data.token);
         setError("");
       } else {
         setError("Auto-login failed. Please try again.");
@@ -96,22 +96,10 @@ export default function PropertyUnitForm() {
 
   const fetchMeters = async () => {
     try {
-      const res = await fetch("http://47.107.69.132:9400/API/Meter/Read", {
+      const res = await fetch("/api/noretek-meter", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          createDateRange: [],
-          updateDateRange: [],
-          pageNumber: 1,
-          pageSize: 100,
-          company: "Noretek Energy",
-          searchTerm: "",
-          sortField: "meterId",
-          sortOrder: "asc",
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
       });
 
       if (res.status === 401) {
@@ -124,7 +112,7 @@ export default function PropertyUnitForm() {
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const data = await res.json();
-      setMeters(data?.result?.data || []);
+      setMeters(data?.meters || []);
     } catch (err) {
       setError("Error fetching meters: " + err.message);
     }

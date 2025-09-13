@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+
 export default function CustomerSignUp() {
   const router = useRouter();
   const [units, setUnits] = useState([]);
@@ -15,9 +16,11 @@ export default function CustomerSignUp() {
     address: "",
     password: "",
     confirmPassword: "",
-    role: "",
-    propertyName: "",
-    propertyUnit: "",
+    role: "Customer",
+    certifiName: "",
+    certifiNo: "",
+    propertyName: "", // 👈 must match backend model
+    propertyUnit: "", // 👈 must match backend model
   });
 
   const [message, setMessage] = useState("");
@@ -48,6 +51,8 @@ export default function CustomerSignUp() {
     } catch (err) {
       console.error(err);
       setMessage("Server error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -102,6 +107,7 @@ export default function CustomerSignUp() {
           <div className="row">
             <p className="fw-bold titleColor"> Customer Information</p>
             <hr className="mb-0 mt-0" />
+
             {/* Name */}
             <div className="col-md-6">
               <div className="mb-2">
@@ -192,29 +198,57 @@ export default function CustomerSignUp() {
               </div>
             </div>
 
+            {/* CertifiName */}
+            <div className="col-md-6">
+              <div className="mb-2">
+                <label className="fw-bold text-muted">Certificate Name:</label>
+                <input
+                  type="text"
+                  className="form-control shadow-none p-2"
+                  name="certifiName"
+                  value={form.certifiName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* CertifiNo */}
+            <div className="col-md-6">
+              <div className="mb-2">
+                <label className="fw-bold text-muted">Certificate No:</label>
+                <input
+                  type="text"
+                  className="form-control shadow-none p-2"
+                  name="certifiNo"
+                  value={form.certifiNo}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
             {/* Role */}
             <div className="col-md-12">
               <div className="mb-3 rounded">
                 <label className="fw-bold text-muted">Role:</label>
-                <select
-                  className="form-select shadow-none p-2"
+                <input
+                  className="form-control shadow-none p-2"
                   name="role"
                   value={form.role}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select Role</option>
-                  <option value="Customer">Customer</option>
-                </select>
+                  readOnly
+                />
               </div>
             </div>
+
             {/* Property Info */}
             <p className="fw-bold titleColor"> Property Information</p>
             <hr />
+
             {/* Property Name */}
             <div className="col-md-6">
               <div className="mb-3 rounded">
-                <label className="fw-bold ">Property Name:</label>
+                <label className="fw-bold">Property Name:</label>
                 <select
                   className="form-select shadow-none p-2"
                   name="propertyName"
@@ -235,7 +269,7 @@ export default function CustomerSignUp() {
             {/* Property Unit */}
             <div className="col-md-6">
               <div className="mb-3 rounded">
-                <label className="fw-bold ">Property Unit:</label>
+                <label className="fw-bold">Property Unit:</label>
                 <select
                   className="form-select shadow-none p-2"
                   name="propertyUnit"
@@ -256,9 +290,9 @@ export default function CustomerSignUp() {
 
           <button
             type="submit"
-            className="btn  text-uppercase  font-monospace primaryColor w-100 shadow-none"
+            className="btn text-uppercase font-monospace primaryColor w-100 shadow-none"
           >
-           {submitting ? "Signing up..." : "Sign Up"}
+            {submitting ? "Signing up..." : "Sign Up"}
           </button>
         </form>
       </div>

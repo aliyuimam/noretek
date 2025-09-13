@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+
 export default function CustomerSignUp() {
   const router = useRouter();
   const [units, setUnits] = useState([]);
@@ -16,10 +17,8 @@ export default function CustomerSignUp() {
     password: "",
     confirmPassword: "",
     role: "Customer",
-    certifiName: "",
-    certifiNo: "",
-    propertyName: "",
-    propertyUnit: "",
+    property_id: "",
+    unit_id: "",
   });
 
   const [message, setMessage] = useState("");
@@ -42,14 +41,16 @@ export default function CustomerSignUp() {
 
       const data = await res.json();
       if (data.success) {
-        setMessage("Signup successful!");
-        //setTimeout(() => router.push("/customer-signin"), 2000);
+        setMessage("Signup successful! Redirecting...");
+        setTimeout(() => router.push("/customer-signin"), 2000);
       } else {
         setMessage(data.message || "Error occurred");
       }
     } catch (err) {
       console.error(err);
       setMessage("Server error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -62,10 +63,12 @@ export default function CustomerSignUp() {
 
         setUnits(data);
 
-        // Extract unique properties
+        // Extract unique properties safely
         const uniqueProps = [
           ...new Map(
-            data.map((u) => [u.property_id._id, u.property_id])
+            data
+              .filter((u) => u.property_id) // 👈 skip bad/null
+              .map((u) => [u.property_id._id, u.property_id])
           ).values(),
         ];
         setUniqueProperties(uniqueProps);
@@ -79,14 +82,14 @@ export default function CustomerSignUp() {
 
   // Filter units when property changes
   useEffect(() => {
-    if (!form.propertyName) {
+    if (!form.property_id) {
       setFilteredUnits([]);
       return;
     }
     setFilteredUnits(
-      units.filter((u) => u.property_id._id === form.propertyName)
+      units.filter((u) => u.property_id && u.property_id._id === form.property_id)
     );
-  }, [form.propertyName, units]);
+  }, [form.property_id, units]);
 
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100">
@@ -104,6 +107,7 @@ export default function CustomerSignUp() {
           <div className="row">
             <p className="fw-bold titleColor"> Customer Information</p>
             <hr className="mb-0 mt-0" />
+
             {/* Name */}
             <div className="col-md-6">
               <div className="mb-2">
@@ -148,20 +152,22 @@ export default function CustomerSignUp() {
                 />
               </div>
             </div>
-            {/* Role */}
+
+            {/* Address */}
             <div className="col-md-6">
-              <div className="mb-3 rounded">
-                <label className="fw-bold text-muted">Role:</label>
+              <div className="mb-2">
+                <label className="fw-bold text-muted">Address:</label>
                 <input
+                  type="text"
                   className="form-control shadow-none p-2"
-                  name="role"
-                  value={form.role}
+                  name="address"
+                  value={form.address}
                   onChange={handleChange}
                   required
-                  readOnly
                 />
               </div>
             </div>
+
             {/* Password */}
             <div className="col-md-6">
               <div className="mb-3">
@@ -192,67 +198,39 @@ export default function CustomerSignUp() {
               </div>
             </div>
 
-            {/* Certific Name */}
-            <div className="col-md-6">
-              <div className="mb-2">
-                <label className="fw-bold text-muted">Certifiic Name:</label>
-                <input
-                  type="text"
-                  className="form-control shadow-none p-2"
-                  name="certifiName"
-                  value={form.certifiName}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-            {/* Certific No */}
-            <div className="col-md-6">
-              <div className="mb-2">
-                <label className="fw-bold text-muted">Certific No:</label>
-                <input
-                  type="text"
-                  className="form-control shadow-none p-2"
-                  name="certifiNo"
-                  value={form.certifiNo}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-            {/* Address */}
+            {/* Role */}
             <div className="col-md-12">
-              <div className="mb-2">
-                <label className="fw-bold text-muted">Address:</label>
-                <textarea
-                  type="text"
+              <div className="mb-3 rounded">
+                <label className="fw-bold text-muted">Role:</label>
+                <input
                   className="form-control shadow-none p-2"
-                  name="address"
-                  rows={3}
-                  value={form.address}
+                  name="role"
+                  value={form.role}
                   onChange={handleChange}
-                  required
-                ></textarea>
+                  readOnly
+                />
               </div>
             </div>
+
             {/* Property Info */}
             <p className="fw-bold titleColor"> Property Information</p>
             <hr />
+
             {/* Property Name */}
             <div className="col-md-6">
               <div className="mb-3 rounded">
                 <label className="fw-bold ">Property Name:</label>
                 <select
                   className="form-select shadow-none p-2"
-                  name="propertyName"
-                  value={form.propertyName}
+                  name="property_id"
+                  value={form.property_id}
                   onChange={handleChange}
                   required
                 >
                   <option value="">Select Property</option>
                   {uniqueProperties.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.property_name}
+                    <option key={p?._id} value={p?._id}>
+                      {p?.property_name || "Unnamed Property"}
                     </option>
                   ))}
                 </select>
@@ -265,8 +243,8 @@ export default function CustomerSignUp() {
                 <label className="fw-bold ">Property Unit:</label>
                 <select
                   className="form-select shadow-none p-2"
-                  name="propertyUnit"
-                  value={form.propertyUnit}
+                  name="unit_id"
+                  value={form.unit_id}
                   onChange={handleChange}
                   required
                 >
@@ -283,9 +261,9 @@ export default function CustomerSignUp() {
 
           <button
             type="submit"
-            className="btn  text-uppercase btn-outline-primary font-monospace primaryColor w-100 shadow-none"
+            className="btn text-uppercase font-monospace primaryColor w-100 shadow-none"
           >
-            {submitting ? "Sigend up" : "Sign Up"}
+            {submitting ? "Signing up..." : "Sign Up"}
           </button>
         </form>
       </div>
