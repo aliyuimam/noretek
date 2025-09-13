@@ -1,7 +1,7 @@
 // src/app/api/vend-token/route.js
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import TokenTransaction from '@/models/TokenTransaction'; // You'll need to create this model
+import TokenTransaction from '@/models/TokenTransaction';
 
 export async function POST(request) {
   try {
@@ -9,18 +9,23 @@ export async function POST(request) {
     
     const { reference, amount, meterNumber, email } = await request.json();
 
-    // Your vending API call here...
-    // (Keep your existing vending API code)
+    // TODO: Replace this with actual vending API call
+    const vendData = {
+      result: {
+        token: "1234567890TOKEN",
+        totalUnit: 50.25,
+      },
+    };
 
-    // Save to MongoDB using Mongoose
+    // Save transaction
     const tokenTransaction = new TokenTransaction({
-      reference: reference,
-      meterNumber: meterNumber,
+      reference,
+      meterNumber,
       customerEmail: email,
-      amount: amount,
+      amount,
       token: vendData.result.token,
       units: vendData.result.totalUnit,
-      status: 'completed'
+      status: 'completed',
     });
     
     await tokenTransaction.save();
@@ -28,16 +33,16 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       token: vendData.result.token,
-      meterNumber: meterNumber,
+      meterNumber,
       units: vendData.result.totalUnit,
-      amount: amount
+      amount,
     });
 
   } catch (error) {
     console.error('Vending error:', error);
     return NextResponse.json({
       success: false,
-      message: error.message
+      message: error.message,
     }, { status: 500 });
   }
 }
