@@ -121,36 +121,38 @@ export default function PropertyUnitForm() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editId) {
-        await fetch("/api/property_unit", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editId, ...form }),
-        });
-      } else {
-        await fetch("/api/property_unit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
-      }
-      setForm({
-        property_id: "",
-        unit_description: "",
-        blockno: "",
-        meter_id: "",
-        captured_by: "",
-        date: "",
-      });
-      setEditId(null);
-      fetchUnits();
-    } catch (err) {
-      setError("Error saving unit: " + err.message);
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const method = editId ? "PUT" : "POST";
+    const res = await fetch("/api/property_unit", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editId ? { id: editId, ...form } : form),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.message || "Error saving unit");
+      return;
     }
-  };
+
+    setForm({
+      property_id: "",
+      unit_description: "",
+      blockno: "",
+      meter_id: "",
+      captured_by: "",
+      date: "",
+    });
+    setEditId(null);
+    fetchUnits();
+    setError("");
+  } catch (err) {
+    setError("Error saving unit: " + err.message);
+  }
+};
+
 
   const handleEdit = (unit) => {
     setForm({
@@ -351,7 +353,7 @@ export default function PropertyUnitForm() {
             <thead className="table-hover table-primary">
               <tr>
                 <th>#</th>
-                <th>Property</th>
+                <th>Name</th>
                 <th>Unit Description</th>
                 <th>Block No</th>
                 <th>Meter ID</th>

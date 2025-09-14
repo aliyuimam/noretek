@@ -3,12 +3,11 @@ import connectDB from "@/lib/mongodb";
 import PropertyUnit from "@/models/PropertyUnit";
 
 // GET all units
-// GET all units
 export async function GET() {
   try {
     await connectDB();
     const units = await PropertyUnit.find()
-      .populate("property_id", "property_name") // 👈 only property_name & _id
+      .populate("property_id", "property_name")
       .sort({ createdAt: -1 });
 
     return new Response(JSON.stringify(units), { status: 200 });
@@ -16,7 +15,6 @@ export async function GET() {
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
-
 
 // POST new unit
 export async function POST(request) {
@@ -26,34 +24,33 @@ export async function POST(request) {
     const { property_id, unit_description, blockno, meter_id, captured_by, date } = body;
 
     if (!property_id || !unit_description || !blockno || !captured_by || !date) {
-      return new Response(JSON.stringify({ message: "Required fields missing" }), {
-        status: 400,
-      });
+      return new Response(JSON.stringify({ message: "Required fields missing" }), { status: 400 });
+    }
+
+    // 🔐 Check if unit already exists for this property
+    const existingUnitDesc = await PropertyUnit.findOne({ property_id, unit_description });
+    if (existingUnitDesc) {
+      return new Response(
+        JSON.stringify({ message: "This unit already exists for the selected property" }),
+        { status: 400 }
+      );
     }
 
     // 🔐 Check if meter already assigned
     if (meter_id) {
-      const existingUnit = await PropertyUnit.findOne({ meter_id });
-      if (existingUnit) {
-        return new Response(JSON.stringify({ message: "This meter is already assigned to another unit" }), {
-          status: 400,
-        });
+      const existingMeter = await PropertyUnit.findOne({ meter_id });
+      if (existingMeter) {
+        return new Response(JSON.stringify({ message: "This meter is already assigned to another unit" }), { status: 400 });
       }
     }
 
-    await PropertyUnit.create({
-      property_id,
-      unit_description,
-      blockno,
-      meter_id,
-      captured_by,
-      date,
-    });
+    await PropertyUnit.create({ property_id, unit_description, blockno, meter_id, captured_by, date });
 
-    return new Response(JSON.stringify({ message: "Unit added successfully" }), {
-      status: 201,
-    });
+    return new Response(JSON.stringify({ message: "Unit added successfully" }), { status: 201 });
   } catch (err) {
+    if (err.code === 11000) {
+      return new Response(JSON.stringify({ message: "Duplicate unit detected" }), { status: 400 });
+    }
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
@@ -65,21 +62,32 @@ export async function PUT(request) {
     const { id, ...updates } = await request.json();
 
     if (!id) {
-      return new Response(JSON.stringify({ message: "Unit ID is required" }), {
-        status: 400,
+      return new Response(JSON.stringify({ message: "Unit ID is required" }), { status: 400 });
+    }
+
+    // 🔐 If unit_description is being updated, check for duplicates
+    if (updates.property_id && updates.unit_description) {
+      const dupCheck = await PropertyUnit.findOne({
+        property_id: updates.property_id,
+        unit_description: updates.unit_description,
+        _id: { $ne: id },
       });
+      if (dupCheck) {
+        return new Response(
+          JSON.stringify({ message: "This unit already exists for the selected property" }),
+          { status: 400 }
+        );
+      }
     }
 
     // 🔐 If meter_id is being updated, check uniqueness
     if (updates.meter_id) {
       const existingUnit = await PropertyUnit.findOne({
         meter_id: updates.meter_id,
-        _id: { $ne: id }, // exclude current unit
+        _id: { $ne: id },
       });
       if (existingUnit) {
-        return new Response(JSON.stringify({ message: "This meter is already assigned to another unit" }), {
-          status: 400,
-        });
+        return new Response(JSON.stringify({ message: "This meter is already assigned to another unit" }), { status: 400 });
       }
     }
 
@@ -90,6 +98,9 @@ export async function PUT(request) {
 
     return new Response(JSON.stringify({ message: "Unit updated successfully", unit: updated }), { status: 200 });
   } catch (err) {
+    if (err.code === 11000) {
+      return new Response(JSON.stringify({ message: "Duplicate unit detected" }), { status: 400 });
+    }
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
