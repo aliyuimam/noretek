@@ -11,6 +11,7 @@ export default function PropertyUnitForm() {
   const [showForm, setShowForm] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [filterProperty, setFilterProperty] = useState(""); // 👈 default empty
 
   // 🔐 API login credentials
   const loginData = {
@@ -121,38 +122,37 @@ export default function PropertyUnitForm() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const method = editId ? "PUT" : "POST";
-    const res = await fetch("/api/property_unit", {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editId ? { id: editId, ...form } : form),
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const method = editId ? "PUT" : "POST";
+      const res = await fetch("/api/property_unit", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editId ? { id: editId, ...form } : form),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.message || "Error saving unit");
-      return;
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || "Error saving unit");
+        return;
+      }
+
+      setForm({
+        property_id: "",
+        unit_description: "",
+        blockno: "",
+        meter_id: "",
+        captured_by: "",
+        date: "",
+      });
+      setEditId(null);
+      fetchUnits();
+      setError("");
+    } catch (err) {
+      setError("Error saving unit: " + err.message);
     }
-
-    setForm({
-      property_id: "",
-      unit_description: "",
-      blockno: "",
-      meter_id: "",
-      captured_by: "",
-      date: "",
-    });
-    setEditId(null);
-    fetchUnits();
-    setError("");
-  } catch (err) {
-    setError("Error saving unit: " + err.message);
-  }
-};
-
+  };
 
   const handleEdit = (unit) => {
     setForm({
@@ -190,6 +190,12 @@ export default function PropertyUnitForm() {
     );
   }
 
+  // 👇 Filtering logic (show nothing until filterProperty is chosen)
+  const displayedUnits =
+    filterProperty === ""
+      ? [] // show none until a property is selected
+      : units.filter((u) => u.property_id?._id === filterProperty);
+
   return (
     <div className="container mt-4">
       <h3 className="mb-4 text-center titleColor">Property Unit Management</h3>
@@ -206,12 +212,7 @@ export default function PropertyUnitForm() {
         </div>
       )}
 
-      <div className="d-md-none mb-3 text-center">
-        <button className="btn backgro" onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Hide Form" : "Add New Unit"}
-        </button>
-      </div>
-
+      {/* Add/Edit Unit Form */}
       {(showForm || window.innerWidth >= 768) && (
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-header backgro">
@@ -290,16 +291,6 @@ export default function PropertyUnitForm() {
                         </option>
                       ))}
                   </select>
-                  {!token && (
-                    <div className="form-text text-warning">
-                      Login required to load meters
-                    </div>
-                  )}
-                  {token && meters.length === 0 && (
-                    <div className="form-text text-warning">
-                      No meters available or error loading meters
-                    </div>
-                  )}
                 </div>
 
                 {/* Captured By */}
@@ -335,15 +326,27 @@ export default function PropertyUnitForm() {
               >
                 {editId ? "Update Unit" : "Add Unit"}
               </button>
-              {!token && (
-                <div className="alert alert-warning mt-3 mb-0">
-                  API authentication required to save data
-                </div>
-              )}
             </form>
           </div>
         </div>
       )}
+
+      {/* Filter Dropdown */}
+      <div className="mb-3">
+        <label className="form-label fw-bold">Filter by Property</label>
+        <select
+          className="form-select shadow-none"
+          value={filterProperty}
+          onChange={(e) => setFilterProperty(e.target.value)}
+        >
+          <option value="">-- Select Property to Filter --</option>
+          {properties.map((p) => (
+            <option key={p._id} value={p._id}>
+              {p.property_name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Table */}
       <div className="card border border-top shadow-sm">
@@ -363,8 +366,8 @@ export default function PropertyUnitForm() {
               </tr>
             </thead>
             <tbody>
-              {units.length > 0 ? (
-                units.map((u, idx) => (
+              {displayedUnits.length > 0 ? (
+                displayedUnits.map((u, idx) => (
                   <tr key={u._id}>
                     <td>{idx + 1}</td>
                     <td>{u.property_id?.property_name || "N/A"}</td>
@@ -394,7 +397,9 @@ export default function PropertyUnitForm() {
               ) : (
                 <tr>
                   <td colSpan="8" className="text-center">
-                    No unit found
+                    {filterProperty === ""
+                      ? "Please select a property to view its units"
+                      : "No units found for this property"}
                   </td>
                 </tr>
               )}
