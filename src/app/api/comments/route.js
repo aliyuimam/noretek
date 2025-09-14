@@ -45,14 +45,17 @@ export async function GET(req) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const ticketId = searchParams.get("ticket_id");
+    const customerId = searchParams.get("customer_id"); // ✅ new filter
 
-    const filter = ticketId ? { ticket_id: ticketId } : {};
+    const filter = {};
+    if (ticketId) filter.ticket_id = ticketId;
+    if (customerId) filter.customer_id = customerId; // ✅ only user’s comments
 
     const comments = await support_comment
       .find(filter)
       .populate("customer_id", "name email")
       .populate("ticket_id", "title")
-      .sort({ created_at: 1 }); // oldest → newest
+      .sort({ created_at: 1 });
 
     const formatted = comments.map((c) => ({
       id: c._id,
@@ -74,6 +77,7 @@ export async function GET(req) {
     );
   }
 }
+
 
 // ✅ UPDATE Comment (PUT)
 export async function PUT(req) {

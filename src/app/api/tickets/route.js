@@ -4,10 +4,19 @@ import SupportTicket from "@/models/supportTicket";
 import { NextResponse } from "next/server";
 
 // src/app/api/tickets/route.js
-export async function GET() {
+export async function GET(req) {
   try {
     await connectDB();
-    const tickets = await SupportTicket.find().lean();
+    const { searchParams } = new URL(req.url);
+    const email = searchParams.get("email"); // ✅ fetch email from query
+
+    let filter = {};
+    if (email) {
+      filter.created_by = email.toLowerCase().trim(); // ✅ only tickets by this email
+    }
+
+    const tickets = await SupportTicket.find(filter).lean();
+
     return NextResponse.json({
       success: true,
       tickets: tickets.map((t) => ({
@@ -19,7 +28,7 @@ export async function GET() {
         status: t.status,
         created_by: t.created_by,
         meter_id: t.meter_id,
-        createdAt: t.created_at,   // 👈 normalized camelCase
+        createdAt: t.created_at,
         updatedAt: t.updated_at,
         closedAt: t.closed_at,
       })),
@@ -28,6 +37,7 @@ export async function GET() {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
 
 
 // ✅ POST (create ticket)

@@ -1,4 +1,3 @@
-// src/app/api/customer-signup-api/route.js
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -20,10 +19,10 @@ export async function POST(req) {
       password,
       confirmPassword,
       role,
-      certifiName,
-      certifiNo,
       property_id,
       unit_id,
+      certifiName, // now optional
+      certifiNo,   // now optional
     } = body;
 
     if (
@@ -34,13 +33,11 @@ export async function POST(req) {
       !password ||
       !confirmPassword ||
       !role ||
-      !certifiName ||
-      !certifiNo ||
       !property_id ||
       !unit_id
     ) {
       return NextResponse.json(
-        { success: false, message: "All fields are required" },
+        { success: false, message: "All required fields must be filled" },
         { status: 400 }
       );
     }
@@ -71,8 +68,8 @@ export async function POST(req) {
       address,
       password: hashedPassword,
       role,
-      certifiName,
-      certifiNo,
+      certifiName: certifiName || "",
+      certifiNo: certifiNo || "",
       propertyName: property_id, // 👈 stored as ObjectId
       propertyUnit: unit_id,     // 👈 stored as ObjectId
     });
@@ -151,8 +148,8 @@ export async function PUT(req) {
         role,
         propertyName: property_id,
         propertyUnit: unit_id,
-        certifiName,
-        certifiNo,
+        certifiName: certifiName || "",
+        certifiNo: certifiNo || "",
       },
       { new: true }
     );

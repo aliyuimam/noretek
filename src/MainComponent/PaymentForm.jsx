@@ -142,10 +142,8 @@ export default function PaymentForm({ userEmail, userId, presetMeter }) {
                   type="text"
                   className="form-control shadow-none"
                   value={meterNumber}
-                  disabled={!!presetMeter || !!userData?.meterId} // 🔒 lock if already set
+                  readOnly // 🔒 makes sure it cannot be typed/changed
                   required
-                  placeholder="Enter your meter number"
-                  maxLength={20}
                 />
                 {userData?.meterId && (
                   <div className="form-text text-success">

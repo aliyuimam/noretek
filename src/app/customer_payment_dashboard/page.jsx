@@ -4,7 +4,6 @@ import PaymentForm from "@/MainComponent/PaymentForm";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-// Create a separate component that uses useSearchParams
 function CustomerPaymentDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -20,7 +19,7 @@ function CustomerPaymentDashboardContent() {
   const [tokenHistory, setTokenHistory] = useState([]);
   const [meterInfo, setMeterInfo] = useState(null);
   const [tariffInfo, setTariffInfo] = useState(null);
-  const [meterId, setMeterId] = useState(null); // ✅ NEW
+  const [meterId, setMeterId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,7 +29,6 @@ function CustomerPaymentDashboardContent() {
           return;
         }
 
-        // ✅ Get email from URL parameters or localStorage
         const urlEmail = searchParams?.get("email");
         const storedEmail = localStorage.getItem("userEmail");
         const storedId = localStorage.getItem("userId");
@@ -43,7 +41,6 @@ function CustomerPaymentDashboardContent() {
 
         setUser({ email: userEmail, id: storedId });
 
-        // ✅ Fetch profile to get userId & meterId
         const profileRes = await fetch(
           `/api/user/profile?email=${encodeURIComponent(userEmail)}`
         );
@@ -54,7 +51,7 @@ function CustomerPaymentDashboardContent() {
             setUser({ email: profileData.user.email, id: profileData.user.id });
           }
           if (profileData.user.meterId) {
-            setMeterId(profileData.user.meterId); // ✅ fix
+            setMeterId(profileData.user.meterId);
             setMeterInfo({
               customerName: profileData.user.name,
               meterNumber: profileData.user.meterId,
@@ -63,22 +60,14 @@ function CustomerPaymentDashboardContent() {
           }
         }
 
-        // Fetch payments
         await refreshPayments(userEmail);
-
-        // Fetch token history
         await fetchTokenHistory(userEmail);
 
-        // Payment verification
         const reference =
           searchParams?.get("reference") || searchParams?.get("trxref");
         const paymentSuccess = searchParams?.get("payment_success");
 
         if (reference && !paymentSuccess) {
-          console.log(
-            "🔄 Payment verification needed for reference:",
-            reference
-          );
           verifyPayment(reference, userEmail);
         } else if (paymentSuccess === "true") {
           const token = localStorage.getItem("lastToken");
@@ -97,7 +86,6 @@ function CustomerPaymentDashboardContent() {
           }
         }
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
         setError("Network error. Please try again.");
       } finally {
         setLoading(false);
@@ -107,18 +95,12 @@ function CustomerPaymentDashboardContent() {
     const verifyPayment = async (reference, userEmail) => {
       setVerifyingPayment(true);
       try {
-        console.log("🔍 Verifying payment with reference:", reference);
-
         const response = await fetch(
           `/api/payments/verify?reference=${reference}`
         );
         const data = await response.json();
 
-        console.log("📦 Verification API response:", data);
-
         if (data.status && data.data.status === "success") {
-          console.log("💰 Payment successful, generating token...");
-
           const meterNumber =
             data.data.metadata?.meterNumber ||
             localStorage.getItem("meterNumber");
@@ -128,7 +110,6 @@ function CustomerPaymentDashboardContent() {
             throw new Error("Meter number not found for token generation");
           }
 
-          // Generate token
           try {
             const tokenData = await generateVendToken(
               meterNumber,
@@ -156,14 +137,12 @@ function CustomerPaymentDashboardContent() {
             await saveTokenToDatabase(tokenInfo);
             setShowSuccessModal(true);
 
-            // Clean URL
             const newUrl = new URL(window.location);
             newUrl.searchParams.delete("reference");
             newUrl.searchParams.delete("trxref");
             newUrl.searchParams.set("payment_success", "true");
             window.history.replaceState({}, "", newUrl);
           } catch (vendError) {
-            console.error("Vend token generation failed:", vendError);
             setGeneratedToken({
               token: generateNumericToken(),
               meterNumber: meterNumber,
@@ -186,7 +165,6 @@ function CustomerPaymentDashboardContent() {
           );
         }
       } catch (error) {
-        console.error("💥 Payment verification error:", error);
         setError("Payment verification failed. Please try again.");
       } finally {
         setVerifyingPayment(false);
@@ -251,7 +229,6 @@ function CustomerPaymentDashboardContent() {
 
         throw new Error("Both vend API endpoints failed");
       } catch (error) {
-        console.error("Vend API error:", error);
         throw error;
       }
     };
@@ -307,7 +284,6 @@ function CustomerPaymentDashboardContent() {
 
     fetchData();
   }, [searchParams]);
-
   const formatToken = (token) => {
     if (!token) return "N/A";
     const numericToken = token.replace(/\D/g, "").substring(0, 20);
@@ -335,7 +311,6 @@ function CustomerPaymentDashboardContent() {
 
   return (
     <div className="container py-5">
-      {/* Success Modal with Receipt */}
       {showSuccessModal && generatedToken && (
         <div
           className="modal fade show d-block"
@@ -359,7 +334,7 @@ function CustomerPaymentDashboardContent() {
                 <div className="receipt p-4 border rounded">
                   <div className="text-center mb-4">
                     <h3 className="text-primary fw-bold">Noretek Energy</h3>
-                    <h5 className="text-dark">ELECTRICITY TOKEN RECEIPT</h5>
+                    <h5 className="text-dark">GAS TOKEN RECEIPT</h5>
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-6">
@@ -378,7 +353,7 @@ function CustomerPaymentDashboardContent() {
                     </div>
                   </div>
                   <div className="bg-dark text-light p-4 rounded text-center mb-4">
-                    <h6 className="mb-2 text-warning">YOUR ELECTRICITY TOKEN</h6>
+                    <h6 className="mb-2 text-warning">YOUR GAS TOKEN</h6>
                     <h2 className="display-5 font-monospace text-white mb-0">
                       {formatToken(generatedToken.token)}
                     </h2>
@@ -391,8 +366,7 @@ function CustomerPaymentDashboardContent() {
                     </div>
                     <div className="col-md-6">
                       <p>
-                        <strong>Units Purchased:</strong> {generatedToken.units}{" "}
-                        kWh
+                        <strong>Units Purchased:</strong> {generatedToken.units} kWh
                       </p>
                     </div>
                   </div>
@@ -415,9 +389,7 @@ function CustomerPaymentDashboardContent() {
                       <li>Press the 'Enter' button on your meter</li>
                       <li>Enter the 20-digit token when prompted</li>
                       <li>Press 'Enter' again to confirm</li>
-                      <li>
-                        Wait for the meter to validate and load the units
-                      </li>
+                      <li>Wait for the meter to validate and load the units</li>
                     </ol>
                   </div>
                 </div>
@@ -449,7 +421,6 @@ function CustomerPaymentDashboardContent() {
         </div>
       )}
 
-      {/* View Token Modal */}
       {viewingToken && generatedToken && (
         <div
           className="modal fade show d-block"
@@ -473,7 +444,7 @@ function CustomerPaymentDashboardContent() {
                 <div className="receipt p-4 border rounded">
                   <div className="text-center mb-4">
                     <h3 className="text-primary fw-bold">Noretek Energy</h3>
-                    <h5 className="text-dark">ELECTRICITY TOKEN RECEIPT</h5>
+                    <h5 className="text-dark">GAS TOKEN RECEIPT</h5>
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-6">
@@ -503,7 +474,7 @@ function CustomerPaymentDashboardContent() {
                     </div>
                   </div>
                   <div className="bg-dark text-light p-4 rounded text-center mb-4">
-                    <h6 className="mb-2 text-warning">YOUR ELECTRICITY TOKEN</h6>
+                    <h6 className="mb-2 text-warning">YOUR GAS TOKEN</h6>
                     <h2 className="display-5 font-monospace text-white mb-0">
                       {formatToken(generatedToken.token)}
                     </h2>
@@ -516,8 +487,7 @@ function CustomerPaymentDashboardContent() {
                     </div>
                     <div className="col-md-6">
                       <p>
-                        <strong>Units Purchased:</strong>{" "}
-                        {generatedToken.units} kWh
+                        <strong>Units Purchased:</strong> {generatedToken.units} kWh
                       </p>
                     </div>
                   </div>
@@ -527,9 +497,7 @@ function CustomerPaymentDashboardContent() {
                       <li>Press the 'Enter' button on your meter</li>
                       <li>Enter the 20-digit token when prompted</li>
                       <li>Press 'Enter' again to confirm</li>
-                      <li>
-                        Wait for the meter to validate and load the units
-                      </li>
+                      <li>Wait for the meter to validate and load the units</li>
                     </ol>
                   </div>
                 </div>
@@ -561,7 +529,6 @@ function CustomerPaymentDashboardContent() {
         </div>
       )}
 
-      {/* Header */}
       <div className="row mb-4">
         <div className="col">
           <button
@@ -570,7 +537,7 @@ function CustomerPaymentDashboardContent() {
           >
             <i className="fas fa-arrow-left me-2"></i>Back to Dashboard
           </button>
-          <h2 className="h4 text-primary">Electricity Token Purchase</h2>
+          <h2 className="h4 text-primary">GAS Token Purchase</h2>
           <p className="text-muted h5">Welcome back, {user?.email}</p>
         </div>
       </div>
@@ -590,7 +557,6 @@ function CustomerPaymentDashboardContent() {
         </div>
       )}
 
-      {/* Meter Information */}
       {meterInfo && (
         <div className="card mb-4">
           <div className="card-header bg-info text-white">
@@ -644,14 +610,12 @@ function CustomerPaymentDashboardContent() {
 
       <div className="row mb-5">
         <div className="col-md-6">
-          {/* ✅ Always passes presetMeter */}
           <PaymentForm
             userEmail={user?.email}
             userId={user?.id}
             presetMeter={meterId}
           />
         </div>
-
         <div className="col-md-6">
           <div className="card shadow-sm">
             <div className="card-header bg-primary text-white">
@@ -693,7 +657,6 @@ function CustomerPaymentDashboardContent() {
         </div>
       </div>
 
-      {/* Token History */}
       <div className="row mt-5">
         <div className="col-12">
           <div className="card shadow-sm">
@@ -749,7 +712,6 @@ function CustomerPaymentDashboardContent() {
         </div>
       </div>
 
-      {/* Font Awesome */}
       <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -758,7 +720,6 @@ function CustomerPaymentDashboardContent() {
   );
 }
 
-// Main component with Suspense boundary
 export default function CustomerPaymentDashboard() {
   return (
     <Suspense

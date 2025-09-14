@@ -1,4 +1,3 @@
-// models/CustomerTable.jsx
 import mongoose from "mongoose";
 
 const CustomerSchema = new mongoose.Schema(
@@ -28,11 +27,11 @@ const CustomerSchema = new mongoose.Schema(
     },
     certifiName: {
       type: String,
-      required: true,
+      default: "", // ✅ not required
     },
     certifiNo: {
       type: String,
-      required: true,
+      default: "", // ✅ not required
     },
     role: {
       type: String,
