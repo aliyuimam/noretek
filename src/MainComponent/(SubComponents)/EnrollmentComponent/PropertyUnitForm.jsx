@@ -8,18 +8,9 @@ export default function PropertyUnitForm() {
   const [properties, setProperties] = useState([]);
   const [meters, setMeters] = useState([]);
   const [editId, setEditId] = useState(null);
-  const [showForm, setShowForm] = useState(true);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [filterProperty, setFilterProperty] = useState(""); // 👈 default empty
-
-  // 🔐 API login credentials
-  const loginData = {
-    userId: "0001",
-    password: "Ntk0001@#",
-    company: "Noretek Energy",
-  };
-  const [token, setToken] = useState("");
+  const [filterProperty, setFilterProperty] = useState("");
+  const [user, setUser] = useState(null);
 
   const [form, setForm] = useState({
     property_id: "",
@@ -30,69 +21,30 @@ export default function PropertyUnitForm() {
     date: "",
   });
 
-  // Auto login immediately on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    if (savedToken) {
-      setToken(savedToken);
-    } else {
-      handleAutoLogin();
+    const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    if (loggedUser?.name || loggedUser?.email) {
+      setUser(loggedUser);
+      setForm((prev) => ({
+        ...prev,
+        captured_by: loggedUser.name || loggedUser.email,
+        date: new Date().toISOString().split("T")[0],
+      }));
     }
+    fetchUnits();
+    fetchProperties();
+    fetchMeters();
   }, []);
 
-  // Fetch data whenever token is available
-  useEffect(() => {
-    if (token) {
-      fetchUnits();
-      fetchProperties();
-      fetchMeters();
-    }
-  }, [token]);
-
-  const handleAutoLogin = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/noretek-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData),
-      });
-
-      if (!res.ok) throw new Error(`Login failed: ${res.status}`);
-
-      const data = await res.json();
-      if (data?.token) {
-        localStorage.setItem("token", data.token);
-        setToken(data.token);
-        setError("");
-      } else {
-        setError("Auto-login failed. Please try again.");
-      }
-    } catch (err) {
-      setError("Login error: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchUnits = async () => {
-    try {
-      const res = await fetch("/api/property_unit");
-      setUnits(await res.json());
-    } catch (err) {
-      setError("Error fetching units: " + err.message);
-    }
+    const res = await fetch("/api/property_unit");
+    setUnits(await res.json());
   };
 
   const fetchProperties = async () => {
-    try {
-      const res = await fetch("/api/property");
-      const data = await res.json();
-      const sortedProps = [...data].sort((a, b) => a._id.localeCompare(b._id));
-      setProperties(sortedProps);
-    } catch (err) {
-      setError("Error fetching properties: " + err.message);
-    }
+    const res = await fetch("/api/property");
+    const data = await res.json();
+    setProperties(data);
   };
 
   const fetchMeters = async () => {
@@ -100,58 +52,75 @@ export default function PropertyUnitForm() {
       const res = await fetch("/api/noretek-meter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token: localStorage.getItem("token") }),
       });
 
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        setToken("");
-        handleAutoLogin();
-        return;
-      }
-
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
       const data = await res.json();
-      setMeters(data?.meters || []);
+
+      if (data.success) {
+        setMeters(data.meters || []);
+        // ✅ Save refreshed token for future requests
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+      } else {
+        setError(data.message || "Failed to fetch meters");
+      }
     } catch (err) {
       setError("Error fetching meters: " + err.message);
     }
   };
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const method = editId ? "PUT" : "POST";
-      const res = await fetch("/api/property_unit", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editId ? { id: editId, ...form } : form),
-      });
 
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.message || "Error saving unit");
-        return;
-      }
-
-      setForm({
-        property_id: "",
-        unit_description: "",
-        blockno: "",
-        meter_id: "",
-        captured_by: "",
-        date: "",
-      });
-      setEditId(null);
-      fetchUnits();
-      setError("");
-    } catch (err) {
-      setError("Error saving unit: " + err.message);
+    // 🔍 Frontend duplicate validation before API call
+    const blockExists = units.some(
+      (u) => u.property_id?._id === form.property_id && u.blockno === form.blockno && u._id !== editId
+    );
+    if (blockExists) {
+      setError(`Block ${form.blockno} already exists in this property`);
+      return;
     }
+
+    const unitExists = units.some(
+      (u) =>
+        u.property_id?._id === form.property_id &&
+        u.blockno === form.blockno &&
+        u.unit_description === form.unit_description &&
+        u._id !== editId
+    );
+    if (unitExists) {
+      setError(`Unit "${form.unit_description}" already exists in Block ${form.blockno}`);
+      return;
+    }
+
+    const method = editId ? "PUT" : "POST";
+    const res = await fetch("/api/property_unit", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editId ? { id: editId, ...form } : form),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.message || "Error saving unit");
+      return;
+    }
+
+    setForm({
+      property_id: "",
+      unit_description: "",
+      blockno: "",
+      meter_id: "",
+      captured_by: user?.name || user?.email || "",
+      date: new Date().toISOString().split("T")[0],
+    });
+    setEditId(null);
+    fetchUnits();
+    setError("");
   };
 
   const handleEdit = (unit) => {
@@ -164,36 +133,21 @@ export default function PropertyUnitForm() {
       date: unit.date ? new Date(unit.date).toISOString().split("T")[0] : "",
     });
     setEditId(unit._id);
-    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this unit?")) return;
-    try {
-      await fetch("/api/property_unit", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      fetchUnits();
-    } catch (err) {
-      setError("Error deleting unit: " + err.message);
-    }
+    await fetch("/api/property_unit", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    fetchUnits();
   };
 
-  if (loading && !token) {
-    return (
-      <div className="container mt-4 text-center">
-        <div className="spinner-border text-primary" role="status" />
-        <p className="mt-2">Connecting to API...</p>
-      </div>
-    );
-  }
-
-  // 👇 Filtering logic (show nothing until filterProperty is chosen)
   const displayedUnits =
     filterProperty === ""
-      ? [] // show none until a property is selected
+      ? []
       : units.filter((u) => u.property_id?._id === filterProperty);
 
   return (
@@ -201,137 +155,120 @@ export default function PropertyUnitForm() {
       <h3 className="mb-4 text-center titleColor">Property Unit Management</h3>
 
       {error && (
-        <div className="alert alert-danger" role="alert">
+        <div className="alert alert-danger">
           {error}
-          <button
-            type="button"
-            className="btn-close float-end"
-            onClick={() => setError("")}
-            aria-label="Close"
-          />
+          <button className="btn-close float-end" onClick={() => setError("")}></button>
         </div>
       )}
 
-      {/* Add/Edit Unit Form */}
-      {(showForm || window.innerWidth >= 768) && (
-        <div className="card border-0 shadow-sm mb-4">
-          <div className="card-header backgro">
-            {editId ? "Edit Property Unit" : "Add New Property Unit"}
-          </div>
-          <div className="card-body">
-            <form onSubmit={handleSubmit}>
-              <div className="row">
-                {/* Property Dropdown */}
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Property</label>
-                  <select
-                    className="form-control shadow-none"
-                    name="property_id"
-                    value={form.property_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Select Property</option>
-                    {properties.map((p, idx) => (
-                      <option key={p._id} value={p._id}>
-                        {String(idx + 1).padStart(4, "0")}PU - {p.property_name}
+      {/* Form */}
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-header backgro">
+          {editId ? "Edit Property Unit" : "Add New Property Unit"}
+        </div>
+        <div className="card-body">
+          <form onSubmit={handleSubmit}>
+            <div className="row">
+              {/* Property Dropdown */}
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Property</label>
+                <select
+                  className="form-control shadow-none"
+                  name="property_id"
+                  value={form.property_id}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select Property</option>
+                  {properties.map((p, idx) => (
+                    <option key={p._id} value={p._id}>
+                      {String(idx + 1).padStart(4, "0")}PU - {p.property_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Unit Description */}
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Unit Description</label>
+                <input
+                  type="text"
+                  className="form-control shadow-none"
+                  name="unit_description"
+                  value={form.unit_description}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* Block No */}
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Block No</label>
+                <input
+                  type="text"
+                  className="form-control shadow-none"
+                  name="blockno"
+                  value={form.blockno}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* Meter ID */}
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Meter ID</label>
+                <select
+                  className="form-select shadow-none"
+                  name="meter_id"
+                  value={form.meter_id}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Meter</option>
+                  {meters
+                    .filter(
+                      (m) =>
+                        !units.some((u) => u.meter_id === m.meterId && u._id !== editId)
+                    )
+                    .map((meter) => (
+                      <option key={meter.meterId} value={meter.meterId}>
+                        {meter.meterId}
                       </option>
                     ))}
-                  </select>
-                </div>
-
-                {/* Unit Description */}
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Unit Description</label>
-                  <input
-                    type="text"
-                    className="form-control shadow-none"
-                    name="unit_description"
-                    value={form.unit_description}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                {/* Block No */}
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Block No</label>
-                  <input
-                    type="text"
-                    className="form-control shadow-none"
-                    name="blockno"
-                    value={form.blockno}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                {/* Meter ID */}
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Meter ID</label>
-                  <select
-                    className="form-select shadow-none"
-                    name="meter_id"
-                    value={form.meter_id}
-                    onChange={handleChange}
-                    disabled={!token || meters.length === 0}
-                  >
-                    <option value="">Select Meter</option>
-                    {meters
-                      .filter(
-                        (m) =>
-                          !units.some(
-                            (u) =>
-                              u.meter_id === m.meterId && u._id !== editId
-                          )
-                      )
-                      .map((meter) => (
-                        <option key={meter.meterId} value={meter.meterId}>
-                          {meter.meterId}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {/* Captured By */}
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Captured By</label>
-                  <input
-                    type="text"
-                    className="form-control shadow-none"
-                    name="captured_by"
-                    value={form.captured_by}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                {/* Date */}
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Date</label>
-                  <input
-                    type="date"
-                    className="form-control shadow-none"
-                    name="date"
-                    value={form.date}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
+                </select>
               </div>
-              <button
-                type="submit"
-                className="btn backgro w-100"
-                disabled={!token}
-              >
-                {editId ? "Update Unit" : "Add Unit"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* Filter Dropdown */}
+              {/* Captured By */}
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Captured By</label>
+                <input
+                  type="text"
+                  className="form-control shadow-none"
+                  name="captured_by"
+                  value={form.captured_by}
+                  disabled
+                />
+              </div>
+
+              {/* Date */}
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Date</label>
+                <input
+                  type="date"
+                  className="form-control shadow-none"
+                  name="date"
+                  value={form.date}
+                  disabled
+                />
+              </div>
+            </div>
+            <button type="submit" className="btn backgro w-100">
+              {editId ? "Update Unit" : "Add Unit"}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Filter */}
       <div className="mb-3">
         <label className="form-label fw-bold">Filter by Property</label>
         <select
@@ -339,7 +276,7 @@ export default function PropertyUnitForm() {
           value={filterProperty}
           onChange={(e) => setFilterProperty(e.target.value)}
         >
-          <option value="">-- Select Property to Filter --</option>
+          <option value="">-- Select Property --</option>
           {properties.map((p) => (
             <option key={p._id} value={p._id}>
               {p.property_name}
@@ -375,9 +312,7 @@ export default function PropertyUnitForm() {
                     <td>{u.blockno}</td>
                     <td>{u.meter_id}</td>
                     <td>{u.captured_by}</td>
-                    <td>
-                      {u.date ? new Date(u.date).toLocaleDateString() : "N/A"}
-                    </td>
+                    <td>{u.date ? new Date(u.date).toLocaleDateString() : "N/A"}</td>
                     <td>
                       <button
                         className="btn btn-warning btn-sm me-2"
@@ -398,7 +333,7 @@ export default function PropertyUnitForm() {
                 <tr>
                   <td colSpan="8" className="text-center">
                     {filterProperty === ""
-                      ? "Please select a property to view its units"
+                      ? "Please select a property"
                       : "No units found for this property"}
                   </td>
                 </tr>
