@@ -8,9 +8,9 @@ import PropertyUnitForm from "@/MainComponent/(SubComponents)/EnrollmentComponen
 import PropertyTablesEnrollment from "@/MainComponent/(SubComponents)/EnrollmentComponent/PropertyTablesEnrollment";
 import PropertyUnitTablesEnrollment from "@/MainComponent/(SubComponents)/EnrollmentComponent/PropertyUnitTablesEnrollment";
 import CustomerSignUp from "@/MainComponent/(SubComponents)/EnrollmentComponent/CreateCustomer";
+import UserList from "@/MainComponent/UserList"; // ✅ show all users
 
 import "./dashboard.css";
-
 
 export default function Dashboard() {
   const router = useRouter();
@@ -47,7 +47,8 @@ export default function Dashboard() {
   useEffect(() => {
     const check = () => {
       const token = localStorage.getItem("token");
-      const stored = localStorage.getItem("user") || localStorage.getItem("staff");
+      const stored =
+        localStorage.getItem("user") || localStorage.getItem("staff");
       if (!token || !stored) {
         setCheckingAuth(false);
         return;
@@ -117,7 +118,7 @@ export default function Dashboard() {
   const handleLogout = () => {
     localStorage.clear();
     setUser(null);
-    router.push("/");
+    router.push("/enrollmentOfficer"); // ✅ redirect back here
   };
 
   const sidebarMenu = [
@@ -127,6 +128,7 @@ export default function Dashboard() {
         { name: "Add Property", key: "Add Property", icon: "bi-house" },
         { name: "Add Property Unit", key: "Add Property Unit", icon: "bi-columns" },
         { name: "Create Customer", key: "Create Customer", icon: "bi-person-plus" },
+        { name: "All Enrollment", key: "All Enrollment", icon: "bi-people" }, // ✅ added
       ],
     },
   ];
@@ -139,10 +141,13 @@ export default function Dashboard() {
         return <PropertyUnitForm />;
       case "Create Customer":
         return <CustomerSignUp />;
+      case "All Enrollment":
+        return <UserList />;
       case "Dashboard":
       default:
         return (
           <div className="row">
+            {/* Property Information */}
             <div className="col-lg-12 mb-3">
               <div className="card h-100">
                 <div className="card-body">
@@ -151,11 +156,23 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Property Unit Information */}
             <div className="col-lg-12 mb-3">
               <div className="card h-100">
                 <div className="card-body">
                   <h5 className="card-title">Property Unit Information</h5>
                   <PropertyUnitTablesEnrollment />
+                </div>
+              </div>
+            </div>
+
+            {/* ✅ All Enrollment Report (Users) */}
+            <div className="col-lg-12 mb-3">
+              <div className="card h-100">
+                <div className="card-body">
+                  <h5 className="card-title">All Enrollment Report</h5>
+                  <UserList />
                 </div>
               </div>
             </div>
@@ -173,17 +190,18 @@ export default function Dashboard() {
   }
 
   if (!user) {
+    // ✅ Login form now styled like Super Admin
     return (
       <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
-        <div className="card p-4 shadow" style={{ width: 400 }}>
-          <h4 className="mb-3 text-center">Staff Login (Enrollment)</h4>
+        <div className="card p-4 shadow-sm" style={{ width: "350px" }}>
+          <h4 className="text-center mb-3 fw-bold">Enrollment Officer Login</h4>
           {loginError && <div className="alert alert-danger">{loginError}</div>}
           <form onSubmit={handleLogin}>
             <div className="mb-3">
               <label className="form-label">Email</label>
               <input
-                className="form-control"
                 type="email"
+                className="form-control"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -192,14 +210,18 @@ export default function Dashboard() {
             <div className="mb-3">
               <label className="form-label">Password</label>
               <input
-                className="form-control"
                 type="password"
+                className="form-control"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-            <button className="btn btn-dark w-100" type="submit" disabled={loggingIn}>
+            <button
+              type="submit"
+              className="btn btn-primary w-100"
+              disabled={loggingIn}
+            >
               {loggingIn ? "Logging in..." : "Login"}
             </button>
           </form>
@@ -212,7 +234,7 @@ export default function Dashboard() {
     <div className="dashboard-layout d-flex">
       {/* Sidebar */}
       <aside className="sidebar">
-        <a href="/" className="logo mb-4">
+        <a href="/enrollmentOfficer" className="logo mb-4">
           <i className="bi bi-lightning-charge"></i>
           <span>Noretek Enrollment</span>
         </a>
@@ -222,7 +244,9 @@ export default function Dashboard() {
             {section.children.map((child, i) => (
               <div
                 key={i}
-                className={`menu-item ${activeContent === child.key ? "active" : ""}`}
+                className={`menu-item ${
+                  activeContent === child.key ? "active" : ""
+                }`}
                 onClick={() => setActiveContent(child.key)}
               >
                 <i className={`bi ${child.icon}`}></i>
@@ -240,9 +264,11 @@ export default function Dashboard() {
             <h4 className="mb-0">{activeContent}</h4>
           </div>
           <div className="right d-flex align-items-center gap-3">
-            
             <span className="fw-semibold">{user.email}</span>
-            <button onClick={handleLogout} className="btn btn-sm btn-outline-danger">
+            <button
+              onClick={handleLogout}
+              className="btn btn-sm btn-outline-danger"
+            >
               Logout
             </button>
           </div>

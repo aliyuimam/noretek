@@ -167,7 +167,7 @@ export default function PaymentForm({ userEmail, userId, presetMeter }) {
               required
               placeholder="Enter amount"
             />
-            <div className="form-text titleColor">Minimum amount: ₦100</div>
+            <div className="form-text titleColor"></div>
           </div>
 
           {/* Submit */}

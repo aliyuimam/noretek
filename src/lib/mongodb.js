@@ -9,16 +9,16 @@ if (!MONGODB_URI) {
   );
 }
 
-// Global cache for mongoose connection
+
 let cached = global.mongoose;
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-// Fix memory leak by setting max listeners
-mongoose.connection.setMaxListeners(20); // Increase from default 10
 
-// Main connectDB function using Mongoose
+mongoose.connection.setMaxListeners(20); 
+
+
 async function connectDB() {
   if (cached.conn) {
     console.log("♻️ Using existing MongoDB (Mongoose) connection");
@@ -62,15 +62,15 @@ async function connectDB() {
   return cached.conn;
 }
 
-// Get connection status function
+
 function getConnectionStatus() {
   if (cached.conn) {
     return mongoose.connection.readyState;
   }
-  return 0; // 0 = disconnected
+  return 0; 
 }
 
-// Mongoose connection event listeners
+
 mongoose.connection.on("connected", () => {
   console.log("✅ Mongoose connected to DB");
 });
@@ -83,7 +83,7 @@ mongoose.connection.on("disconnected", () => {
   console.log("⚠️ Mongoose disconnected from DB");
 });
 
-// Handle application termination
+
 process.on("SIGINT", async () => {
   try {
     await mongoose.connection.close();
@@ -95,6 +95,6 @@ process.on("SIGINT", async () => {
   }
 });
 
-// Export both functions
+
 export default connectDB;
 export { connectDB, getConnectionStatus };

@@ -92,84 +92,85 @@ function CustomerPaymentDashboardContent() {
       }
     };
 
-    const verifyPayment = async (reference, userEmail) => {
-      setVerifyingPayment(true);
+   const verifyPayment = async (reference, userEmail) => {
+  setVerifyingPayment(true);
+  try {
+    const response = await fetch(`/api/payments/verify?reference=${reference}`);
+    const data = await response.json();
+
+    if (data.status && data.data.status === "success") {
+      const meterNumber =
+        data.data.metadata?.meterNumber || localStorage.getItem("meterNumber");
+      const amount = data.data.amount / 100;
+
+      if (!meterNumber) throw new Error("Meter number not found for token generation");
+
       try {
-        const response = await fetch(
-          `/api/payments/verify?reference=${reference}`
-        );
-        const data = await response.json();
+        const tokenData = await generateVendToken(meterNumber, amount, reference);
 
-        if (data.status && data.data.status === "success") {
-          const meterNumber =
-            data.data.metadata?.meterNumber ||
-            localStorage.getItem("meterNumber");
-          const amount = data.data.amount / 100;
+        const tokenInfo = {
+          reference,
+          token: tokenData.token,
+          meterNumber,
+          units: tokenData.units || "0",
+          amount,
+          customerEmail: userEmail,
+          customerName: data.data.customer?.email || userEmail,
+          timestamp: new Date().toISOString(),
+        };
 
-          if (!meterNumber) {
-            throw new Error("Meter number not found for token generation");
-          }
+        setGeneratedToken(tokenInfo);
 
-          try {
-            const tokenData = await generateVendToken(
-              meterNumber,
-              amount,
-              reference
-            );
+        // Store locally for later viewing
+        localStorage.setItem("lastToken", tokenData.token);
+        localStorage.setItem("lastMeter", meterNumber);
+        localStorage.setItem("lastUnits", tokenData.units || "0");
+        localStorage.setItem("lastAmount", amount.toString());
 
-            const tokenInfo = {
-              token: tokenData.token,
-              meterNumber: meterNumber,
-              units: tokenData.units || "0",
-              amount: amount,
-              reference: reference,
-              customerName: userEmail,
-              timestamp: new Date().toISOString(),
-            };
+        // ✅ Save to DB + push to tokenHistory immediately
+        await saveTokenToDatabase(tokenInfo);
 
-            setGeneratedToken(tokenInfo);
+        setShowSuccessModal(true);
 
-            localStorage.setItem("lastToken", tokenData.token);
-            localStorage.setItem("lastMeter", meterNumber);
-            localStorage.setItem("lastUnits", tokenData.units || "0");
-            localStorage.setItem("lastAmount", amount.toString());
+        // Clean URL
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.delete("reference");
+        newUrl.searchParams.delete("trxref");
+        newUrl.searchParams.set("payment_success", "true");
+        window.history.replaceState({}, "", newUrl);
+      } catch (vendError) {
+        console.error("Vend error:", vendError);
 
-            await saveTokenToDatabase(tokenInfo);
-            setShowSuccessModal(true);
+        // fallback numeric token
+        const fallbackToken = {
+          reference,
+          token: generateNumericToken(),
+          meterNumber,
+          units: calculateUnits(amount, 55),
+          amount,
+          customerEmail: userEmail,
+          customerName: data.data.customer?.email || userEmail,
+          status: "pending",
+        };
 
-            const newUrl = new URL(window.location);
-            newUrl.searchParams.delete("reference");
-            newUrl.searchParams.delete("trxref");
-            newUrl.searchParams.set("payment_success", "true");
-            window.history.replaceState({}, "", newUrl);
-          } catch (vendError) {
-            setGeneratedToken({
-              token: generateNumericToken(),
-              meterNumber: meterNumber,
-              units: calculateUnits(amount, 55),
-              amount: amount,
-              reference: reference,
-              customerName: userEmail,
-              status: "pending",
-            });
-            setShowSuccessModal(true);
-            setError("Payment successful! Token generation is in progress.");
-          }
-
-          await refreshPayments(userEmail);
-          await fetchTokenHistory(userEmail);
-        } else {
-          setError(
-            data.message ||
-              `Payment failed. Status: ${data.data?.status || "unknown"}`
-          );
-        }
-      } catch (error) {
-        setError("Payment verification failed. Please try again.");
-      } finally {
-        setVerifyingPayment(false);
+        setGeneratedToken(fallbackToken);
+        setShowSuccessModal(true);
+        setError("Payment successful! Token generation is in progress.");
       }
-    };
+
+      // ✅ Only refresh payments, not token history (already updated)
+      await refreshPayments(userEmail);
+    } else {
+      setError(data.message || `Payment failed. Status: ${data.data?.status || "unknown"}`);
+    }
+  } catch (error) {
+    console.error("Verification error:", error);
+    setError("Payment verification failed. Please try again.");
+  } finally {
+    setVerifyingPayment(false);
+  }
+};
+
 
     const generateVendToken = async (meterNumber, amount, reference) => {
       try {
@@ -241,18 +242,34 @@ function CustomerPaymentDashboardContent() {
 
     const calculateUnits = (amount, tariffRate) => (amount / tariffRate).toFixed(2);
 
-    const saveTokenToDatabase = async (tokenInfo) => {
-      try {
-        const response = await fetch("/api/tokens/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(tokenInfo),
-        });
-        if (!response.ok) console.error("Failed to save token");
-      } catch (error) {
-        console.error("Error saving token:", error);
-      }
-    };
+// inside CustomerPaymentDashboardContent
+
+const saveTokenToDatabase = async (tokenInfo) => {
+  try {
+    const response = await fetch("/api/tokens/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(tokenInfo),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to save token");
+      return;
+    }
+
+    const result = await response.json();
+
+    if (result.success && result.token) {
+      // ✅ Update token history immediately in state
+      setTokenHistory((prev) => [result.token, ...prev]);
+      console.log("Token saved & added to history:", result.token);
+    }
+  } catch (error) {
+    console.error("Error saving token:", error);
+  }
+};
+
+
 
     const refreshPayments = async (email) => {
       try {

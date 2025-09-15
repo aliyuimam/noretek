@@ -1,8 +1,8 @@
 "use client";
 import AdminForm from "@/MainComponent/(SubComponents)/AdminComponent/AdminForm";
-import AdminTables from "@/MainComponent/(SubComponents)/AdminComponent/AdminTable"; // ✅ fixed import
-import { useState } from "react";
-import Link from "next/link"; // ✅ use Next.js Link for navigation
+import AdminTables from "@/MainComponent/(SubComponents)/AdminComponent/AdminTable";
+import { useState, useEffect } from "react";
+import logo from "./logo.png";
 
 export default function Dashboard() {
   const [activeContent, setActiveContent] = useState("Dashboard");
@@ -10,6 +10,17 @@ export default function Dashboard() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [dashboardData, setDashboardData] = useState(null);
+
+  // State for Manage Admin
+  const [customers, setCustomers] = useState([]);
+  const [customerPage, setCustomerPage] = useState(1);
+  const [customerPerPage] = useState(5);
+
+  // State for Support Tickets
+  const [tickets, setTickets] = useState([]);
+  const [ticketPage, setTicketPage] = useState(1);
+  const [ticketPerPage] = useState(5);
 
   // Hardcoded Super Admin Credentials
   const SUPER_ADMIN = {
@@ -33,32 +44,68 @@ export default function Dashboard() {
     setPassword("");
   };
 
-  const donutData = [
-    { label: "Available", value: 45, color: "bg-success" },
-    { label: "Sold", value: 38, color: "bg-primary" },
-    { label: "Lost", value: 17, color: "bg-danger" },
-  ];
-
   const sidebarMenu = [
     {
       title: "Assignment",
       children: [
-        { name: "Super Admin Form", key: "Super Admin Form" },
-        { name: "Assign Role", key: "Assign Role" },
+        { name: "Add Staff", key: "Add Staff" },
+        { name: "Filter by Role", key: "Filter by Role" },
       ],
     },
     {
       title: "Management",
       children: [
-        { name: "Manage Admin", key: "Manage Admin" },
-        { name: "Customer Support Unit", key: "Customer Support Unit" },
+        { name: "All Users", key: "Manage Admin" },
+        { name: "View Customer Support", key: "Customer Support Unit" },
       ],
     },
   ];
 
+  // Fetch Dashboard Data
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const res = await fetch("/api/dashboard");
+        const data = await res.json();
+        if (data.success) setDashboardData(data);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  // Fetch Customers
+  useEffect(() => {
+    if (activeContent === "Manage Admin") {
+      fetch("/api/customer-signup-api")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) setCustomers(data.customers || []);
+        })
+        .catch((err) => console.error("Error fetching customers:", err));
+    }
+  }, [activeContent]);
+
+  // Fetch Tickets
+  useEffect(() => {
+    if (activeContent === "Customer Support Unit") {
+      fetch("/api/tickets")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) setTickets(data.tickets || []);
+        })
+        .catch((err) => console.error("Error fetching tickets:", err));
+    }
+  }, [activeContent]);
+
+  // Pagination Helpers
+  const paginate = (array, page, perPage) =>
+    array.slice((page - 1) * perPage, page * perPage);
+
   const renderContent = () => {
     switch (activeContent) {
-      case "Super Admin Form":
+      case "Add Staff":
         return (
           <div className="card mb-4">
             <div className="card-body">
@@ -67,11 +114,11 @@ export default function Dashboard() {
             </div>
           </div>
         );
-      case "Assign Role":
+      case "Filter by Role":
         return (
           <div className="card mb-4">
             <div className="card-body">
-              <h5 className="card-title titleColor">Assign Role Report</h5>
+              <h5 className="card-title titleColor">Filter By Role</h5>
               <AdminTables />
             </div>
           </div>
@@ -80,8 +127,63 @@ export default function Dashboard() {
         return (
           <div className="card mb-4">
             <div className="card-body">
-              <h5 className="card-title">Manage Admin</h5>
-              <p>Dummy content for Managing Admin...</p>
+              <h5 className="card-title">All Customers</h5>
+              <div className="table-responsive">
+                <table className="table table-sm table-hover">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Address</th>
+                      <th>Property</th>
+                      <th>Unit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginate(customers, customerPage, customerPerPage).map(
+                      (c) => (
+                        <tr key={c._id}>
+                          <td>{c.name}</td>
+                          <td>{c.email}</td>
+                          <td>{c.phone}</td>
+                          <td>{c.address}</td>
+                          <td>{c.propertyName?.property_name || "N/A"}</td>
+                          <td>
+                            {c.propertyUnit
+                              ? `${c.propertyUnit.unit_description} - Block ${c.propertyUnit.blockno}`
+                              : "N/A"}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+                {/* Pagination */}
+                <div className="d-flex justify-content-between">
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    disabled={customerPage === 1}
+                    onClick={() => setCustomerPage((p) => p - 1)}
+                  >
+                    Prev
+                  </button>
+                  <span>
+                    Page {customerPage} of{" "}
+                    {Math.ceil(customers.length / customerPerPage)}
+                  </span>
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    disabled={
+                      customerPage >=
+                      Math.ceil(customers.length / customerPerPage)
+                    }
+                    onClick={() => setCustomerPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -89,13 +191,265 @@ export default function Dashboard() {
         return (
           <div className="card mb-4">
             <div className="card-body">
-              <h5 className="card-title">Customer Support Unit</h5>
-              <p>Dummy content for Customer Support Unit...</p>
+              <h5 className="card-title">All Support Tickets</h5>
+              <div className="table-responsive">
+                <table className="table table-sm table-hover">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Title</th>
+                      <th>Status</th>
+                      <th>Priority</th>
+                      <th>Category</th>
+                      <th>Created By</th>
+                      <th>Meter ID</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginate(tickets, ticketPage, ticketPerPage).map((t) => (
+                      <tr key={t._id}>
+                        <td>{t.title}</td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              t.status === "Open"
+                                ? "bg-warning"
+                                : t.status === "Resolved"
+                                ? "bg-success"
+                                : "bg-secondary"
+                            }`}
+                          >
+                            {t.status}
+                          </span>
+                        </td>
+                        <td>{t.priority}</td>
+                        <td>{t.category}</td>
+                        <td>{t.created_by}</td>
+                        <td>{t.meter_id}</td>
+                       <td>new Date(prop.created_at).toLocaleDateString()
+</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {/* Pagination */}
+                <div className="d-flex justify-content-between">
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    disabled={ticketPage === 1}
+                    onClick={() => setTicketPage((p) => p - 1)}
+                  >
+                    Prev
+                  </button>
+                  <span>
+                    Page {ticketPage} of{" "}
+                    {Math.ceil(tickets.length / ticketPerPage)}
+                  </span>
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    disabled={
+                      ticketPage >= Math.ceil(tickets.length / ticketPerPage)
+                    }
+                    onClick={() => setTicketPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         );
+      case "Dashboard":
       default:
-        return null;
+        return (
+          <div className="container">
+            {/* Totals */}
+            <div className="row g-4 mb-4">
+              <div className="col-md-3">
+                <div className="card shadow-sm text-center">
+                  <div className="card-body">
+                    <h6 className="text-muted">Customers</h6>
+                    <h3>{dashboardData?.totals.totalCustomers || 0}</h3>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="card shadow-sm text-center">
+                  <div className="card-body">
+                    <h6 className="text-muted">Properties</h6>
+                    <h3>{dashboardData?.totals.totalProperties || 0}</h3>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="card shadow-sm text-center">
+                  <div className="card-body">
+                    <h6 className="text-muted">Units</h6>
+                    <h3>{dashboardData?.totals.totalUnits || 0}</h3>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="card shadow-sm text-center">
+                  <div className="card-body">
+                    <h6 className="text-muted">Payments</h6>
+                    <h3>{dashboardData?.totals.totalPayments || 0}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="row">
+              <div className="col-md-6">
+                <div className="card shadow-sm">
+                  <div className="card-header bg-primary text-white">
+                    Recent Payments
+                  </div>
+                  <div className="card-body table-responsive">
+                    <table className="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Reference</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                          <th>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dashboardData?.recent.payments?.length > 0 ? (
+                          dashboardData.recent.payments.map((p) => (
+                            <tr key={p._id}>
+                              <td>{p.reference}</td>
+                              <td>₦{p.amount}</td>
+                              <td>
+                                <span
+                                  className={`badge ${
+                                    p.status === "success"
+                                      ? "bg-success"
+                                      : p.status === "pending"
+                                      ? "bg-warning"
+                                      : "bg-danger"
+                                  }`}
+                                >
+                                  {p.status}
+                                </span>
+                              </td>
+                              <td>
+                                {new Date(p.createdAt).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="text-center text-muted">
+                              No recent payments
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-6">
+                <div className="card shadow-sm">
+                  <div className="card-header bg-info text-white">
+                    Recent Tickets
+                  </div>
+                  <div className="card-body table-responsive">
+                    <table className="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Title</th>
+                          <th>Status</th>
+                          <th>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dashboardData?.recent.tickets?.length > 0 ? (
+                          dashboardData.recent.tickets.map((t) => (
+                            <tr key={t._id}>
+                              <td>{t.title}</td>
+                              <td>
+                                <span
+                                  className={`badge ${
+                                    t.status === "Open"
+                                      ? "bg-warning"
+                                      : t.status === "Resolved"
+                                      ? "bg-success"
+                                      : "bg-secondary"
+                                  }`}
+                                >
+                                  {t.status}
+                                </span>
+                              </td>
+                              <td>
+                                {new Date(t.createdAt).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="3" className="text-center text-muted">
+                              No recent tickets
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-12 mt-4">
+                <div className="card shadow-sm">
+                  <div className="card-header bg-success text-white">
+                    Recent Properties
+                  </div>
+                  <div className="card-body table-responsive">
+                    <table className="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Property Name</th>
+                          <th>Owner</th>
+                          <th>Location</th>
+                          <th>Address</th>
+                          <th>Date Captured</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+  {dashboardData?.recent.properties?.length > 0 ? (
+    dashboardData.recent.properties.map((prop) => (
+      <tr key={prop._id}>
+        <td>{prop.property_name}</td>
+        <td>{prop.owner_name}</td>
+        <td>{prop.property_location}</td>
+        <td>{prop.property_address}</td>
+        <td>
+          {prop.created_at
+            ? new Date(prop.created_at).toLocaleDateString()
+            : "N/A"}
+        </td>
+      </tr>
+    ))
+  ) : (
+    <tr>
+      <td colSpan="5" className="text-center text-muted">
+        No recent properties
+      </td>
+    </tr>
+  )}
+</tbody>
+
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
     }
   };
 
@@ -136,26 +490,20 @@ export default function Dashboard() {
     );
   }
 
-  // If authenticated → Show dashboard
   return (
     <div className="customer-support d-flex flex-column min-vh-100">
-      {/* Navbar (Sticky) */}
+      {/* Top Navbar */}
       <nav className="navbar navbar-light bg-white sticky-top px-3 shadow-sm">
-        <Link
-          href="/"
-          className="d-flex align-items-center text-decoration-none text-dark"
-        >
+        <div className="d-flex align-items-center text-decoration-none text-dark">
           <img
-            src="/assets/logo.png"
+            src={logo.src}
             className="logo rounded-2 d-none d-md-block"
             alt="Noretek Energy Ltd"
             width={120}
           />
-        </Link>
+        </div>
         <div className="d-flex align-items-center gap-3">
-          <i className="bi bi-search"></i>
-          <i className="bi bi-bell"></i>
-          <span className="fw-semibold">{SUPER_ADMIN.username}</span>
+          <span className="fw-semibold">Super Admin</span>
           <button
             onClick={handleLogout}
             className="btn btn-sm btn-outline-danger"
@@ -174,12 +522,12 @@ export default function Dashboard() {
           <div className="accordion border-0" id="sidebarMenu">
             <ul className="navbar-nav">
               <li className="nav-item mx-3">
-                <Link
-                  href="/admin_dashboard"
-                  className="nav-link btn-link fw-bold shadow-sm"
+                <button
+                  onClick={() => setActiveContent("Dashboard")}
+                  className="btn btn-link fw-bold shadow-sm nav-link text-decoration-none"
                 >
-                  Super Admin
-                </Link>
+                  Dashboard
+                </button>
               </li>
             </ul>
             {sidebarMenu.map((section, idx) => (
@@ -228,87 +576,6 @@ export default function Dashboard() {
               {new Date().toLocaleDateString()}
             </span>
           </div>
-
-          {activeContent === "Dashboard" && (
-            <div className="row mb-4">
-              <div className="col-lg-4 col-md-6 mb-3">
-                <div className="card h-100 text-center">
-                  <div className="card-body">
-                    <svg width="100%" height="180" viewBox="0 0 42 42">
-                      <circle
-                        cx="21"
-                        cy="21"
-                        r="15.915"
-                        fill="transparent"
-                        stroke="#198754"
-                        strokeWidth="5"
-                        strokeDasharray={`${donutData[0].value} ${
-                          100 - donutData[0].value
-                        }`}
-                        strokeDashoffset={0}
-                      />
-                      <circle
-                        cx="21"
-                        cy="21"
-                        r="15.915"
-                        fill="transparent"
-                        stroke="#0d6efd"
-                        strokeWidth="5"
-                        strokeDasharray={`${donutData[1].value} ${
-                          100 - donutData[1].value
-                        }`}
-                        strokeDashoffset={-donutData[0].value}
-                      />
-                      <circle
-                        cx="21"
-                        cy="21"
-                        r="15.915"
-                        fill="transparent"
-                        stroke="#dc3545"
-                        strokeWidth="5"
-                        strokeDasharray={`${donutData[2].value} ${
-                          100 - donutData[2].value
-                        }`}
-                        strokeDashoffset={
-                          -(donutData[0].value + donutData[1].value)
-                        }
-                      />
-                    </svg>
-                    <div className="mt-3">
-                      {donutData.map((d, i) => (
-                        <div key={i}>
-                          <span className={`badge ${d.color} me-1`}>
-                            &nbsp;
-                          </span>
-                          {d.label} {d.value}%
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-lg-4 col-md-6 mb-3">
-                <div className="card h-100 text-center">
-                  <div className="card-body">
-                    <h2 className="fw-bold">34</h2>
-                    <p className="text-muted mb-0">
-                      Customers that were <a href="#">serviced</a>
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="col-lg-4 col-md-6 mb-3">
-                <div className="card h-100 text-center">
-                  <div className="card-body">
-                    <h2 className="fw-bold">63</h2>
-                    <p className="text-muted mb-0">
-                      They are awaiting for <a href="#">respond</a>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {renderContent()}
         </main>

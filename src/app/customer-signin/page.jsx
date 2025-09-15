@@ -19,25 +19,21 @@ export default function Login() {
     setMessage("");
 
     try {
-      // ✅ call the existing API route
       const res = await axios.post("/api/customer-signin-api", form);
 
-      // API returns { message, role } on success
       setMessage(res.data.message);
 
-      // Optional: save user email / role in localStorage
-  localStorage.setItem("userEmail", form.email);
-  localStorage.setItem("userRole", res.data.role);
+      // Save user info
+      localStorage.setItem("userEmail", form.email);
+      localStorage.setItem("userRole", res.data.role);
 
-
-      // Redirect after a small delay
+      // Redirect
       if (res.data.role === "Customer") {
         setMessage("Signin successful! Redirecting...");
         setTimeout(() => {
-          router.push("/customer_dashboard"); // ✅ redirect to dashboard
+          router.push("/customer_dashboard");
         }, 1500);
       } else {
-        // fallback dashboard
         router.push("/dashboard");
       }
     } catch (err) {
@@ -49,42 +45,52 @@ export default function Login() {
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center min-vh-100">
-      <div
-        className="shadow-lg p-4 p-md-5 rounded w-100"
-        style={{ maxWidth: 600 }}
-      >
-        <h4 className="mb-4 text-center titleColor text-uppercase font-monospace">
-          Customer Sign In
-        </h4>
+    <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
+      <div className="card p-4 shadow-sm" style={{ width: "350px" }}>
+        <h4 className="text-center mb-3 fw-bold">Customer Sign In</h4>
 
-        {message && <div className="alert alert-info">{message}</div>}
+        {message && (
+          <div
+            className={`alert ${
+              message.toLowerCase().includes("fail") ||
+              message.toLowerCase().includes("error")
+                ? "alert-danger"
+                : "alert-info"
+            }`}
+          >
+            {message}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="fw-bold">Email:</label>
+            <label className="form-label">Email</label>
             <input
               type="email"
-              className="form-control shadow-none p-2"
+              className="form-control"
               name="email"
               value={form.email}
               onChange={handleChange}
               required
             />
           </div>
+
           <div className="mb-3">
-            <label className="fw-bold">Password:</label>
+            <label className="form-label">Password</label>
             <input
               type="password"
-              className="form-control shadow-none p-2"
+              className="form-control"
               name="password"
               value={form.password}
               onChange={handleChange}
               required
             />
           </div>
+
           <button
             type="submit"
-            className="btn primaryColor font-monospace rounded w-100"
+            className="btn btn-primary w-100"
+            disabled={submitting}
           >
             {submitting ? "Signing in..." : "Sign In"}
           </button>
